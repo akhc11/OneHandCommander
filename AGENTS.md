@@ -44,6 +44,11 @@ Graphify に関する成果物・レポート・グラフデータはすべて�
 - **データ管理**: `SavedData` (SharedPreferences) に集中管理し、マジックナンバーのハードコードを禁止する。
 - **イベントフロー**: `FloatingButton` / `Touchpad` / `Tenkey` / `AppMenu` からのイベントは、`OverlayManager` および `MainService` を通じて単一方向の明確なデータフローを維持する。
 
+### ⑤ 過度な最適化・エッジな実装の禁止（Standard & Robust First）
+- ユーザーから明示的な指示がない限り、わずかな最適化のためにトリッキーなハック、複雑な予測アルゴリズム、標準APIを迂回するようなエッジな独自実装を行わないこと。
+- Androidフレームワークの標準API・設計パターン（Lifecycle, WindowManager, AccessibilityService, RecyclerView）に忠実に従い、シンプルで堅牢・可読性の高いコードを最優先とする。
+- 「早すぎる最適化（Premature Optimization）」は行わず、動作の確実性・仕様の安定性を第一とする。
+
 ---
 
 ## 3. バージョン管理・安全運用ルール (Git & Rollback)
