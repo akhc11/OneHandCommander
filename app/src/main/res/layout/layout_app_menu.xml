@@ -87,17 +87,16 @@
                 android:layout_marginStart="3dp" />
         </LinearLayout>
 
-        <!-- ③ 下部: 最近のファイル 4行リスト -->
-        <LinearLayout
+        <!-- ③ 下部: 最近のファイル 4行リスト (常に28dp×4=112dpの高さを固定確保) -->
+        <FrameLayout
             android:id="@+id/recent_section_container"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_height="112dp">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_recent_files"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:clipToPadding="false"
                 android:nestedScrollingEnabled="false"
                 android:overScrollMode="never" />
@@ -105,13 +104,13 @@
             <TextView
                 android:id="@+id/text_empty_recent"
                 android:layout_width="match_parent"
-                android:layout_height="60dp"
+                android:layout_height="match_parent"
                 android:gravity="center"
                 android:text="最近のファイルなし"
                 android:textColor="#666677"
                 android:textSize="10.5sp"
                 android:visibility="gone" />
-        </LinearLayout>
+        </FrameLayout>
 
     </LinearLayout>
 </FrameLayout>
