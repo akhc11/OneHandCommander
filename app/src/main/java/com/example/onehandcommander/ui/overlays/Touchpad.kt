@@ -6,7 +6,6 @@ import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.view.Choreographer
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -23,10 +22,10 @@ import kotlin.math.hypot
 
 /**
  * 高パフォーマンス・高精度タッチパッド・オーバーレイ
- * - VSYNC同期とダーティチェックによる無駄な Binder IPC の完全排除
+ * - ダーティチェックによる無駄な Binder IPC の完全排除
  * - 正確なジェスチャーステート（タップ / 長押しタップ / 長押しドラッグ）
- * - 初動・微小移動時の滑らかな追従（ワープ・蓄積バグの解消）
- * - 指の移動速度と距離・経過時間に完全に忠実なドラッグジェスチャー生成
+ * - 初動・微小移動時の滑らかな追従
+ * - 指の移動速度と距離・経過時間に忠実なドラッグジェスチャー生成
  */
 class Touchpad(
     context: Context,
@@ -85,42 +84,8 @@ class Touchpad(
     // 実際の指の動きの軌跡を忠実に Accessibility Gesture Path に変換
     private val dragPath = Path()
 
-    // --- VSYNC / Choreographer ---
-    private var accumulatedDx = 0f
-    private var accumulatedDy = 0f
-    private var isFrameScheduled = false
-
     private val handler = Handler(Looper.getMainLooper())
     private var longPressRunnable: Runnable? = null
-
-    private val frameCallback = object : Choreographer.FrameCallback {
-        override fun doFrame(frameTimeNanos: Long) {
-            if (!isFrameScheduled) return
-
-            // 1. 論理座標の更新
-            if (accumulatedDx != 0f || accumulatedDy != 0f) {
-                cursorX = (cursorX + accumulatedDx * cachedSpeed).coerceIn(0f, screenWidth.toFloat())
-                cursorY = (cursorY + accumulatedDy * cachedSpeed).coerceIn(0f, screenHeight.toFloat())
-
-                // ドラッグ中なら実際の移動経路を Path に逐次記録
-                if (touchState == TouchState.DRAGGING) {
-                    dragPath.lineTo(cursorX, cursorY)
-                }
-
-                accumulatedDx = 0f
-                accumulatedDy = 0f
-            }
-
-            // 2. 予測描画座標の計算 (Visual Lead)
-            visualCursorX = (cursorX + velocityX * PREDICTION_OFFSET_MS * cachedSpeed).coerceIn(0f, screenWidth.toFloat())
-            visualCursorY = (cursorY + velocityY * PREDICTION_OFFSET_MS * cachedSpeed).coerceIn(0f, screenHeight.toFloat())
-
-            // 3. 表示の更新（位置が変わった場合のみ WindowManager IPC を発行）
-            renderCursorPos(visualCursorX, visualCursorY)
-
-            Choreographer.getInstance().postFrameCallback(this)
-        }
-    }
 
     fun setScreenSize(w: Int, h: Int) {
         screenWidth = w
@@ -188,21 +153,18 @@ class Touchpad(
     }
 
     override fun onHidden() {
-        stopFrameUpdates()
         cancelLongPressTimer()
         removeCursorViewSafely()
         super.onHidden()
     }
 
     override fun cleanup() {
-        stopFrameUpdates()
         cancelLongPressTimer()
         removeCursorViewSafely()
         super.cleanup()
     }
 
     override fun onRemoved() {
-        stopFrameUpdates()
         cancelLongPressTimer()
         removeCursorViewSafely()
         super.onRemoved()
@@ -255,15 +217,11 @@ class Touchpad(
         velocityY = 0f
         isFirstMove = true
 
-        accumulatedDx = 0f
-        accumulatedDy = 0f
-
         touchState = TouchState.NORMAL_MOVING
         dragPath.reset()
 
         renderCursorPos(cursorX, cursorY, force = true)
         startLongPressTimer()
-        startFrameUpdates()
     }
 
     private fun handleTouchMove(event: MotionEvent) {
@@ -295,9 +253,21 @@ class Touchpad(
 
         // 閾値以上の意図的な移動のみカーソルへ反映
         if (dist > cachedThreshold) {
-            accumulatedDx += dx
-            accumulatedDy += dy
+            cursorX = (cursorX + dx * cachedSpeed).coerceIn(0f, screenWidth.toFloat())
+            cursorY = (cursorY + dy * cachedSpeed).coerceIn(0f, screenHeight.toFloat())
+
+            // ドラッグ中なら移動経路を Path に逐次記録
+            if (touchState == TouchState.DRAGGING) {
+                dragPath.lineTo(cursorX, cursorY)
+            }
         }
+
+        // 予測描画座標の計算 (Visual Lead)
+        visualCursorX = (cursorX + velocityX * PREDICTION_OFFSET_MS * cachedSpeed).coerceIn(0f, screenWidth.toFloat())
+        visualCursorY = (cursorY + velocityY * PREDICTION_OFFSET_MS * cachedSpeed).coerceIn(0f, screenHeight.toFloat())
+
+        // 位置が変わった場合のみ WindowManager IPC でカーソル描画
+        renderCursorPos(visualCursorX, visualCursorY)
 
         when (touchState) {
             TouchState.NORMAL_MOVING -> {
@@ -312,18 +282,17 @@ class Touchpad(
                 // 長押し成立後に遊び幅を超えて動いたら、ドラッグモードへ移行
                 if (movedFromStill > cachedLpPlayPx) {
                     touchState = TouchState.DRAGGING
-                    // doFrame 内で dragPath.lineTo(cursorX, cursorY) が自動継続される
+                    dragPath.lineTo(cursorX, cursorY)
                 }
             }
             TouchState.DRAGGING -> {
-                // doFrame 内でリアルタイムに dragPath へ座標を追加中
+                // dragPath に記録中
             }
             TouchState.IDLE -> {}
         }
     }
 
     private fun handleTouchUp() {
-        stopFrameUpdates()
         cancelLongPressTimer()
 
         when (touchState) {
@@ -336,7 +305,7 @@ class Touchpad(
                 performLongPress(visualCursorX, visualCursorY)
             }
             TouchState.DRAGGING -> {
-                // ドラッグ: 指を動かした時間と実際の軌跡（等速にならず自然な速度）でジェスチャー実行
+                // ドラッグ: 指を動かした時間と実際の軌跡でジェスチャー実行
                 performDragGesture()
             }
             TouchState.IDLE -> {}
@@ -347,18 +316,6 @@ class Touchpad(
         velocityX = 0f
         velocityY = 0f
         dragPath.reset()
-    }
-
-    private fun startFrameUpdates() {
-        if (!isFrameScheduled) {
-            isFrameScheduled = true
-            Choreographer.getInstance().postFrameCallback(frameCallback)
-        }
-    }
-
-    private fun stopFrameUpdates() {
-        isFrameScheduled = false
-        Choreographer.getInstance().removeFrameCallback(frameCallback)
     }
 
     private fun startLongPressTimer() {
