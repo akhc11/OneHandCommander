@@ -33,7 +33,8 @@ class FloatingButton(
     // コールバック
     var onTap: (() -> Unit)? = null
     var onSwipe: (() -> Unit)? = null
-    var onVerticalSwipe: (() -> Unit)? = null
+    var onSwipeUp: (() -> Unit)? = null
+    var onSwipeDown: (() -> Unit)? = null
 
     // タッチ状態 & ポインタ追跡
     private var initialX = 0
@@ -241,8 +242,15 @@ class FloatingButton(
         Vibration.vibrateTick()
         val isVerticalSwipe = abs(diffY) > abs(diffX)
         if (isVerticalSwipe) {
-            onVerticalSwipe?.invoke()
+            if (diffY < 0) {
+                // 上スワイプ (diffY < 0) -> ホーム
+                onSwipeUp?.invoke()
+            } else {
+                // 下スワイプ (diffY > 0) -> 最近のタスク
+                onSwipeDown?.invoke()
+            }
         } else {
+            // 水平スワイプ -> タッチパッド
             onSwipe?.invoke()
         }
     }
@@ -251,7 +259,8 @@ class FloatingButton(
         super.cleanup()
         onTap = null
         onSwipe = null
-        onVerticalSwipe = null
+        onSwipeUp = null
+        onSwipeDown = null
         overlayView?.setOnTouchListener(null)
     }
 }

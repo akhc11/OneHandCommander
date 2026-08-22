@@ -141,14 +141,23 @@ class MainService : AccessibilityService() {
             stateManager.processIntent(ServiceIntent.TapFloatingButton)
         }
 
-        // 右スワイプでタッチパッド起動
+        // 右/左スワイプでタッチパッド起動
         overlayManager.btnManager.onSwipe = {
             stateManager.processIntent(ServiceIntent.SwipeFloatingButton)
         }
 
-        // 上下スワイプで全オーバーレイを閉じる
-        overlayManager.btnManager.onVerticalSwipe = {
+        // 上スワイプでホーム画面へ
+        overlayManager.btnManager.onSwipeUp = {
             stateManager.processIntent(ServiceIntent.VerticalSwipeFloatingButton)
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            Vibration.vibrateClick()
+        }
+
+        // 下スワイプで最近使ったタスク一覧（Recents）へ
+        overlayManager.btnManager.onSwipeDown = {
+            stateManager.processIntent(ServiceIntent.VerticalSwipeFloatingButton)
+            performGlobalAction(GLOBAL_ACTION_RECENTS)
+            Vibration.vibrateClick()
         }
 
         // テンキー入力コールバック

@@ -60,6 +60,7 @@ class Tenkey(
     }
 
     override fun createLayoutParams(): WindowManager.LayoutParams {
+        val alpha = SavedData.getTenkeyAlpha()
         return WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -69,6 +70,9 @@ class Tenkey(
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
+            x = SavedData.getTenkeyX()
+            y = SavedData.getTenkeyY()
+            this.alpha = UiHelper.percentToAlpha(alpha)
         }
     }
 

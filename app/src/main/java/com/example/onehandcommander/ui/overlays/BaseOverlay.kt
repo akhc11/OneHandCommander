@@ -29,13 +29,28 @@ abstract class BaseOverlay(
      * オーバーレイを表示
      */
     open fun show() {
-        if (isVisible()) return
+        if (isVisible()) {
+            bringToFront()
+            return
+        }
         
         val view = overlayView ?: createView().also { overlayView = it }
         if (view.parent == null) {
             params = createLayoutParams()
             windowManager.addView(view, params)
             onShown()
+        }
+    }
+
+    /**
+     * 最前面に再配置（WindowManager の Z-order 更新）
+     */
+    open fun bringToFront() {
+        overlayView?.let { view ->
+            if (view.parent != null) {
+                windowManager.removeView(view)
+                windowManager.addView(view, params)
+            }
         }
     }
 
