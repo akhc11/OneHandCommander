@@ -68,7 +68,6 @@ class OverlayManager(
                 padManager.hide()
                 appMenu.show()
                 tenkeyManager.show()
-                btnManager.bringToFront()
             }
             is ServiceState.MenuSearch -> {
                 btnManager.updateVisibility(true)
@@ -76,14 +75,12 @@ class OverlayManager(
                 appMenu.show()
                 appMenu.focusSearch()
                 tenkeyManager.show()
-                btnManager.bringToFront()
             }
             is ServiceState.TouchpadActive -> {
                 btnManager.updateVisibility(true)
                 tenkeyManager.hide()
                 appMenu.hide()
                 padManager.show()
-                btnManager.bringToFront()
             }
         }
     }

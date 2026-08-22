@@ -177,14 +177,14 @@ class AppMenu(
     private var emptyAppsTextView: TextView? = null
     private var emptyRecentTextView: TextView? = null
 
-    private val appsAdapter = AppsListAdapter()
-    private val recentAdapter = RecentFilesListAdapter()
+    private val themedContext by lazy { ContextThemeWrapper(context, R.style.Theme_OneHandCommander) }
+    private val themedInflater by lazy { LayoutInflater.from(themedContext) }
+
+    private val appsAdapter by lazy { AppsListAdapter() }
+    private val recentAdapter by lazy { RecentFilesListAdapter() }
 
     private var previewIndex = -1
-
-    init {
-        preload(context)
-    }
+    private var isClearingSearch = false
 
     override fun createLayoutParams(): WindowManager.LayoutParams {
         return WindowManager.LayoutParams(
@@ -202,8 +202,7 @@ class AppMenu(
     }
 
     override fun createView(): View {
-        val themedContext = ContextThemeWrapper(context, R.style.Theme_OneHandCommander)
-        val view = LayoutInflater.from(themedContext).inflate(R.layout.layout_app_menu, null)
+        val view = themedInflater.inflate(R.layout.layout_app_menu, null)
 
         val dimBackground = view.findViewById<View>(R.id.menu_dim_background)
         val menuCard = view.findViewById<View>(R.id.menu_card)
@@ -268,7 +267,9 @@ class AppMenu(
         searchInput?.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                filterAll(s?.toString().orEmpty())
+                if (!isClearingSearch) {
+                    filterAll(s?.toString().orEmpty())
+                }
             }
             override fun afterTextChanged(s: Editable?) {}
         })
@@ -317,7 +318,9 @@ class AppMenu(
     override fun show() {
         try {
             super.show()
+            isClearingSearch = true
             searchInput?.setText("")
+            isClearingSearch = false
 
             // キャッシュから 0ms で即座に描画
             val cachedApps = memoryCachedApps
@@ -337,8 +340,10 @@ class AppMenu(
                 }
             }
 
-            // バックグラウンドで差分更新
-            loadDataAsync()
+            // キャッシュが空の場合のみ非同期取得
+            if (cachedApps == null || cachedFiles == null) {
+                loadDataAsync()
+            }
         } catch (e: Exception) {
             ErrorHandler.logError("Failed to show AppMenu", e)
         }
@@ -462,8 +467,7 @@ class AppMenu(
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder {
-            val themedContext = ContextThemeWrapper(parent.context, R.style.Theme_OneHandCommander)
-            val view = LayoutInflater.from(themedContext).inflate(R.layout.item_app_grid, parent, false)
+            val view = themedInflater.inflate(R.layout.item_app_grid, parent, false)
             return AppViewHolder(view)
         }
 
@@ -506,8 +510,7 @@ class AppMenu(
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileViewHolder {
-            val themedContext = ContextThemeWrapper(parent.context, R.style.Theme_OneHandCommander)
-            val view = LayoutInflater.from(themedContext).inflate(R.layout.item_file_list, parent, false)
+            val view = themedInflater.inflate(R.layout.item_file_list, parent, false)
             return FileViewHolder(view)
         }
 

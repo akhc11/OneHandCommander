@@ -133,6 +133,8 @@ class Tenkey(
             for (i in 0 until view.childCount) {
                 val child = view.getChildAt(i)
                 if (child is Button) {
+                    child.isClickable = false
+                    child.isFocusable = false
                     val p = child.layoutParams
                     if (p.width != sizePx || p.height != sizePx) {
                         p.width = sizePx

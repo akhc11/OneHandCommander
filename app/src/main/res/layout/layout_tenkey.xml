@@ -8,17 +8,17 @@
     android:orientation="horizontal"
     android:background="@android:color/transparent">
 
-    <Button android:id="@+id/btn_1" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
-    <Button android:id="@+id/btn_2" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
-    <Button android:id="@+id/btn_3" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
+    <Button android:id="@+id/btn_1" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" android:clickable="false" android:focusable="false" />
+    <Button android:id="@+id/btn_2" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" android:clickable="false" android:focusable="false" />
+    <Button android:id="@+id/btn_3" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" android:clickable="false" android:focusable="false" />
 
-    <Button android:id="@+id/btn_4" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
-    <Button android:id="@+id/btn_5" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
-    <Button android:id="@+id/btn_6" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
+    <Button android:id="@+id/btn_4" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" android:clickable="false" android:focusable="false" />
+    <Button android:id="@+id/btn_5" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" android:clickable="false" android:focusable="false" />
+    <Button android:id="@+id/btn_6" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" android:clickable="false" android:focusable="false" />
 
-    <Button android:id="@+id/btn_7" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
-    <Button android:id="@+id/btn_8" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
-    <Button android:id="@+id/btn_9" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
+    <Button android:id="@+id/btn_7" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" android:clickable="false" android:focusable="false" />
+    <Button android:id="@+id/btn_8" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" android:clickable="false" android:focusable="false" />
+    <Button android:id="@+id/btn_9" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" android:clickable="false" android:focusable="false" />
 
     <!-- 0キーを行3・中央列（column 1）に明示配置 -->
     <Button
@@ -27,6 +27,8 @@
         android:layout_height="48dp"
         android:layout_row="3"
         android:layout_column="1"
+        android:clickable="false"
+        android:focusable="false"
         android:background="@android:color/transparent" />
 
 </GridLayout>
