@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tenkey_grid"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:columnCount="3"
+    android:rowCount="4"
+    android:orientation="horizontal"
+    android:background="@android:color/transparent">
+
+    <Button android:id="@+id/btn_1" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
+    <Button android:id="@+id/btn_2" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
+    <Button android:id="@+id/btn_3" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
+
+    <Button android:id="@+id/btn_4" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
+    <Button android:id="@+id/btn_5" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
+    <Button android:id="@+id/btn_6" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
+
+    <Button android:id="@+id/btn_7" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
+    <Button android:id="@+id/btn_8" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
+    <Button android:id="@+id/btn_9" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" />
+
+    <!-- 0キーを中央列（column 1）に配置し、ダミーViewプレースホルダーを完全排除 -->
+    <Button
+        android:id="@+id/btn_0"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_column="1"
+        android:background="@android:color/transparent" />
+
+</GridLayout>

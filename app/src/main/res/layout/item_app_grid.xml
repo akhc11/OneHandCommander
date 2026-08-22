@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/item_app_root"
+    android:layout_width="56dp"
+    android:layout_height="56dp"
+    android:background="@drawable/bg_item_ripple">
+
+    <!-- 中央配置のアイコン（文字なし・44dp） -->
+    <ImageView
+        android:id="@+id/app_icon"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_gravity="center"
+        android:scaleType="fitCenter" />
+
+    <!-- 1〜40の数字バッジ (左上に配置) -->
+    <TextView
+        android:id="@+id/text_key_badge"
+        android:layout_width="wrap_content"
+        android:minWidth="14dp"
+        android:layout_height="14dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="2dp"
+        android:background="@drawable/bg_number_badge"
+        android:paddingHorizontal="2.5dp"
+        android:gravity="center"
+        android:textColor="#FFFFFF"
+        android:textSize="8sp"
+        android:textStyle="bold" />
+</FrameLayout>

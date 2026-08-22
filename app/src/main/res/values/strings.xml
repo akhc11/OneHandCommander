@@ -1,0 +1,48 @@
+<resources>
+    <string name="app_name">OneHandCommander</string>
+    <string name="notification_service_title">OneHandCommander 実行中</string>
+    <string name="notification_service_text">片手操作ボタンを表示しています</string>
+    <string name="fgs_special_use_subtype">アクセシビリティ操作用の常駐オーバーレイを維持するため</string>
+
+    <!-- Toast Messages -->
+    <string name="toast_position_saved">位置を保存しました</string>
+    <string name="toast_touchpad_mode">Touchpad Mode</string>
+    <string name="toast_drag_mode">Drag Mode</string>
+    <string name="toast_move_mode_on">移動モード: ON</string>
+    <string name="toast_copy_success">コピーしました</string>
+    <string name="toast_copy_failed">コピーに失敗しました</string>
+    <string name="toast_delete_success">削除しました</string>
+
+    <!-- Error Messages -->
+    <string name="error_settings_open">設定画面を開けません</string>
+    <string name="error_app_launch">アプリを起動できません</string>
+    <string name="error_file_open">ファイルを開けません</string>
+    <string name="error_file_delete">削除に失敗しました</string>
+    <string name="error_file_share">共有に失敗しました</string>
+    <string name="error_file_generic">ファイル操作エラー</string>
+    <string name="error_search">検索に失敗しました</string>
+    <string name="error_permission">権限がありません</string>
+    <string name="error_settings">設定の読み込みに失敗しました</string>
+
+    <!-- Settings Labels -->
+    <string name="settings_section_button">【メインボタン設定】</string>
+    <string name="settings_section_tenkey">【テンキー設定】</string>
+    <string name="settings_section_touchpad">【タッチパッド設定】</string>
+    <string name="settings_label_size">サイズ</string>
+    <string name="settings_label_vibration">振動フィードバック</string>
+    <string name="settings_label_width">幅</string>
+    <string name="settings_label_height">高さ</string>
+    <string name="settings_label_opacity">不透明度(%%)</string>
+    <string name="settings_label_x">X座標</string>
+    <string name="settings_label_y">Y座標</string>
+    <string name="settings_label_cursor_speed">カーソル速度 (x1.0~)</string>
+    <string name="settings_label_cursor_speed_format">カーソル速度: %1$.1fx</string>
+    <string name="settings_label_cursor_threshold">感度しきい値(px)</string>
+    <string name="settings_label_long_press_delay">ドラッグ長押し時間(ms)</string>
+    <string name="settings_label_long_press_play">長押し遊び範囲(px)</string>
+
+    <!-- System Action Names -->
+    <string name="action_back">戻る</string>
+    <string name="action_home">ホーム</string>
+    <string name="action_recents">履歴</string>
+</resources>

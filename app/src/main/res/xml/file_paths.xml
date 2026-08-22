@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 外部ストレージ全体へのアクセスを許可（ファイル共有・ファイル開き用） -->
+    <external-path name="external_files" path="." />
+</paths>

@@ -1,0 +1,7 @@
+{
+  "name": "OneHandCommander",
+  "description": "片手操作を劇的に快適にするAndroidアクセシビリティ＆オーバーレイコマンダーアプリ",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

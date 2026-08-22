@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/menu_dim_background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#99000000"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- 横幅240dpに凝縮し、縦横等間隔（56dp×56dpセル）の正方形グリッドを実現 -->
+    <LinearLayout
+        android:id="@+id/menu_card"
+        android:layout_width="240dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_menu_card"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <!-- ① 上部: 単一の洗練された検索バー (0キーでフォーカス) -->
+        <EditText
+            android:id="@+id/edit_search"
+            android:layout_width="match_parent"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_search_field"
+            android:hint="🔍 検索... (0キー)"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#7A7A8C"
+            android:textSize="11.5sp"
+            android:paddingHorizontal="10dp"
+            android:singleLine="true"
+            android:imeOptions="actionDone"
+            android:inputType="text"
+            android:layout_marginBottom="8dp" />
+
+        <!-- ② 真ん中: 横4列・縦横等間隔（56dp×56dpセル）アプリグリッド（40個まで・スクロール可能） -->
+        <!-- 4段分(56dp×4 = 224dp)をジャスト表示 -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="224dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_apps"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:overScrollMode="never"
+                android:scrollbars="none" />
+
+            <TextView
+                android:id="@+id/text_empty_apps"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="アプリなし"
+                android:textColor="#7A7A8C"
+                android:textSize="11.5sp"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <!-- 最近使用したファイル ヘッダー -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="4dp"
+            android:paddingHorizontal="2dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🕒 最近のファイル"
+                android:textColor="#C0C0D4"
+                android:textSize="10.5sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" (4件)"
+                android:textColor="#7A7A8C"
+                android:textSize="9.5sp"
+                android:layout_marginStart="3dp" />
+        </LinearLayout>
+
+        <!-- ③ 下部: 最近のファイル 4行リスト -->
+        <LinearLayout
+            android:id="@+id/recent_section_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_recent_files"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never" />
+
+            <TextView
+                android:id="@+id/text_empty_recent"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:gravity="center"
+                android:text="最近のファイルなし"
+                android:textColor="#666677"
+                android:textSize="10.5sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+    </LinearLayout>
+</FrameLayout>
