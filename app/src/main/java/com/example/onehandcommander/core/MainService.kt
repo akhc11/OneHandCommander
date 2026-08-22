@@ -154,9 +154,10 @@ class MainService : AccessibilityService() {
         // テンキー入力コールバック
         overlayManager.tenkeyManager.onInput = { num ->
             Vibration.vibrateClick()
-            if (num == "0") {
+            if (num == "0" || num == "00") {
                 // 0キー押下で即座にアプリ検索バーへフォーカス＆ソフトキーボード展開
                 stateManager.processIntent(ServiceIntent.EnterSearch())
+                overlayManager.appMenu.focusSearch()
             } else {
                 val launched = overlayManager.appMenu.launchByNumber(num)
                 if (launched) {

@@ -74,6 +74,8 @@ class Touchpad(
     // --- Touch & Gesture Tracking ---
     private var lastTouchX = 0f
     private var lastTouchY = 0f
+    private var lastStillX = 0f
+    private var lastStillY = 0f
     private var touchDownX = 0f
     private var touchDownY = 0f
 
@@ -245,6 +247,8 @@ class Touchpad(
         touchDownY = event.y
         lastTouchX = event.x
         lastTouchY = event.y
+        lastStillX = event.x
+        lastStillY = event.y
         lastEventTime = event.eventTime
 
         velocityX = 0f
@@ -287,7 +291,7 @@ class Touchpad(
         lastTouchX = event.x
         lastTouchY = event.y
 
-        val movedFromDown = hypot(event.x - touchDownX, event.y - touchDownY)
+        val movedFromStill = hypot(event.x - lastStillX, event.y - lastStillY)
 
         // 閾値以上の意図的な移動のみカーソルへ反映
         if (dist > cachedThreshold) {
@@ -297,14 +301,16 @@ class Touchpad(
 
         when (touchState) {
             TouchState.NORMAL_MOVING -> {
-                // 遊び幅を超えて動いたら長押しタイマーをキャンセル（標準ジェスチャースロップ準拠）
-                if (movedFromDown > cachedLpPlayPx) {
-                    cancelLongPressTimer()
+                // 指が動いている間は基準位置を更新し、指が静止した地点から長押し判定を再カウント
+                if (movedFromStill > cachedLpPlayPx) {
+                    lastStillX = event.x
+                    lastStillY = event.y
+                    startLongPressTimer()
                 }
             }
             TouchState.LONG_PRESSED_STILL -> {
                 // 長押し成立後に遊び幅を超えて動いたら、ドラッグモードへ移行
-                if (movedFromDown > cachedLpPlayPx) {
+                if (movedFromStill > cachedLpPlayPx) {
                     touchState = TouchState.DRAGGING
                     // doFrame 内で dragPath.lineTo(cursorX, cursorY) が自動継続される
                 }
@@ -365,6 +371,8 @@ class Touchpad(
                 // 長押しが成立した瞬間の正確なカーソル座標をドラッグ Path の起点として初期化
                 dragPath.reset()
                 dragPath.moveTo(cursorX, cursorY)
+                lastStillX = lastTouchX
+                lastStillY = lastTouchY
 
                 Vibration.vibrateClick()
                 UiHelper.showToast(context, context.getString(R.string.toast_drag_mode))

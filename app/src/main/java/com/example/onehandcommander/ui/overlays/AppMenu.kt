@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.onehandcommander.R
+import com.example.onehandcommander.settings.SavedData
 import com.example.onehandcommander.utils.AppIconCache
 import com.example.onehandcommander.utils.ErrorHandler
 import com.example.onehandcommander.utils.UiHelper
@@ -120,26 +121,37 @@ class AppMenu(
 
             // 2. 最近のファイル (最新4件)
             val list = mutableListOf<FileItem>()
-            val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             val timeFormat = SimpleDateFormat("MM/dd HH:mm", Locale.getDefault())
 
-            if (downloadDir != null && downloadDir.exists()) {
-                downloadDir.listFiles()
-                    ?.filter { it.isFile }
-                    ?.sortedByDescending { it.lastModified() }
-                    ?.take(10)
-                    ?.forEach { f ->
-                        list.add(
-                            FileItem(
-                                name = f.name,
-                                path = f.absolutePath,
-                                sizeFormatted = formatFileSize(f.length()),
-                                timeFormatted = timeFormat.format(Date(f.lastModified())),
-                                lastModified = f.lastModified()
-                            )
-                        )
+            val candidateDirs = listOfNotNull(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+                context.getExternalFilesDir(null)
+            )
+
+            val allFoundFiles = mutableListOf<File>()
+            for (dir in candidateDirs) {
+                if (dir.exists() && dir.canRead()) {
+                    dir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.let {
+                        allFoundFiles.addAll(it)
                     }
+                }
             }
+
+            allFoundFiles.sortByDescending { it.lastModified() }
+            allFoundFiles.take(10).forEach { f ->
+                list.add(
+                    FileItem(
+                        name = f.name,
+                        path = f.absolutePath,
+                        sizeFormatted = formatFileSize(f.length()),
+                        timeFormatted = timeFormat.format(Date(f.lastModified())),
+                        lastModified = f.lastModified()
+                    )
+                )
+            }
+
             memoryCachedFiles = list
         }
 
@@ -289,6 +301,7 @@ class AppMenu(
         if (index in 0 until currentList.size) {
             val target = currentList[index]
             Vibration.vibrateClick()
+            SavedData.addRecentApp(target.packageName)
             hide()
             UiHelper.launchApp(context, target.packageName)
             return true
@@ -351,6 +364,7 @@ class AppMenu(
         if (!isVisible()) show()
         searchInput?.post {
             searchInput?.requestFocus()
+            searchInput?.setSelection(searchInput?.text?.length ?: 0)
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
             imm?.showSoftInput(searchInput, InputMethodManager.SHOW_IMPLICIT)
         }
@@ -478,6 +492,7 @@ class AppMenu(
 
             holder.view.setOnClickListener {
                 Vibration.vibrateClick()
+                SavedData.addRecentApp(item.packageName)
                 hide()
                 UiHelper.launchApp(context, item.packageName)
             }

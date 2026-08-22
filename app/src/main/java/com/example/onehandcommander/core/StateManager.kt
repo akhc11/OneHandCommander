@@ -43,15 +43,17 @@ class StateManager(
             is ServiceIntent.TapFloatingButton -> {
                 when (current) {
                     is ServiceState.Idle -> ServiceState.MenuNormal
-                    is ServiceState.MenuNormal, is ServiceState.MenuSearch, is ServiceState.TouchpadActive -> ServiceState.Idle
+                    is ServiceState.MenuNormal, is ServiceState.MenuSearch -> ServiceState.Idle
+                    is ServiceState.TouchpadActive -> ServiceState.MenuNormal
                     is ServiceState.Suspended -> ServiceState.Suspended
                 }
             }
             is ServiceIntent.SwipeFloatingButton -> {
                 when (current) {
                     is ServiceState.TouchpadActive -> ServiceState.Idle
+                    is ServiceState.MenuNormal, is ServiceState.MenuSearch -> ServiceState.TouchpadActive
+                    is ServiceState.Idle -> ServiceState.TouchpadActive
                     is ServiceState.Suspended -> ServiceState.Suspended
-                    else -> ServiceState.TouchpadActive
                 }
             }
             is ServiceIntent.VerticalSwipeFloatingButton -> {

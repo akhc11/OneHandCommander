@@ -49,6 +49,20 @@ class StateManagerTest {
     }
 
     @Test
+    fun directSwitching_betweenTouchpadAndMenu_withoutClosingFirst() {
+        // TouchpadActive 状態で Tap -> 直接 MenuNormal へ切り替え
+        stateManager.processIntent(ServiceIntent.SwipeFloatingButton)
+        assertEquals(ServiceState.TouchpadActive, stateManager.currentState)
+
+        stateManager.processIntent(ServiceIntent.TapFloatingButton)
+        assertEquals(ServiceState.MenuNormal, stateManager.currentState)
+
+        // MenuNormal 状態で Swipe -> 直接 TouchpadActive へ切り替え
+        stateManager.processIntent(ServiceIntent.SwipeFloatingButton)
+        assertEquals(ServiceState.TouchpadActive, stateManager.currentState)
+    }
+
+    @Test
     fun keyboardOpened_dismissesTouchpad_whenActive() {
         // TouchpadActive 状態でキーボードが開いた場合 -> Idle へ戻る
         stateManager.processIntent(ServiceIntent.SwipeFloatingButton)

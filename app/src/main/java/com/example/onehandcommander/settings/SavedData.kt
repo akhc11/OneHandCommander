@@ -44,6 +44,7 @@ object SavedData {
     const val KEY_CURSOR_THRESHOLD = "cursor_threshold"
     const val KEY_TOUCHPAD_LP_DELAY = "touchpad_lp_delay"
     const val KEY_TOUCHPAD_LP_PLAY = "touchpad_lp_play"
+    private const val KEY_RECENT_APPS = "recent_apps_list"
 
     private lateinit var prefs: SharedPreferences
     private val listeners = CopyOnWriteArrayList<SharedPreferences.OnSharedPreferenceChangeListener>()
@@ -220,6 +221,22 @@ object SavedData {
 
     fun getTouchpadLongPressPlay() = prefs.getInt(KEY_TOUCHPAD_LP_PLAY, Constants.Defaults.TOUCHPAD_LP_PLAY_PX)
     fun saveTouchpadLongPressPlay(px: Int) = prefs.edit().putInt(KEY_TOUCHPAD_LP_PLAY, px).apply()
+
+    // ----- 最近使ったアプリ履歴 (カンマ区切り文字列で永続化) -----
+    fun getRecentApps(): List<String> {
+        val raw = prefs.getString(KEY_RECENT_APPS, "") ?: ""
+        if (raw.isBlank()) return emptyList()
+        return raw.split(",").filter { it.isNotBlank() }
+    }
+
+    fun addRecentApp(packageName: String) {
+        if (packageName.isBlank()) return
+        val current = getRecentApps().toMutableList()
+        current.remove(packageName)
+        current.add(0, packageName)
+        val trimmed = current.take(10)
+        prefs.edit().putString(KEY_RECENT_APPS, trimmed.joinToString(",")).apply()
+    }
 
     // ==========================================
     // 変更リスナー管理
