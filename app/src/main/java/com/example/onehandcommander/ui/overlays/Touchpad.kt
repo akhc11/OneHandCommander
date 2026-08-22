@@ -1,6 +1,5 @@
 package com.example.onehandcommander.ui.overlays
 
-import android.accessibilityservice.GestureDescription
 import android.content.Context
 import android.graphics.Path
 import android.graphics.PixelFormat
@@ -398,11 +397,7 @@ class Touchpad(
     }
 
     private fun performDragGesture() {
-        val maxDuration = try {
-            GestureDescription.getMaxStrokeDuration()
-        } catch (e: Throwable) {
-            5000L
-        }
+        val maxDuration = Constants.GESTURE_MAX_STROKE_DURATION_MS
 
         // 実際にユーザーが指を動かしていた時間（ms）を正確に計算
         val elapsedMs = (SystemClock.uptimeMillis() - longPressTriggerTimeMs).coerceIn(100L, maxDuration)

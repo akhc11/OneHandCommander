@@ -17,6 +17,7 @@ object Constants {
     // ジェスチャー設定
     const val GESTURE_CLICK_DURATION_MS = 10L
     const val GESTURE_LONG_CLICK_DURATION_MS = 1000L
+    const val GESTURE_MAX_STROKE_DURATION_MS = 5000L
     
     const val ALPHA_PERCENTAGE_DIVISOR = 100f
     
