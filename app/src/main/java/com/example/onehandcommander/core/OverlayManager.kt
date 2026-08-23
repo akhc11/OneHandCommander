@@ -44,6 +44,7 @@ class OverlayManager(
         val bounds = metrics.bounds
         padManager.setScreenSize(bounds.width(), bounds.height())
         SavedData.registerListener(prefsListener)
+        appMenu.warmUp()
     }
 
     /**

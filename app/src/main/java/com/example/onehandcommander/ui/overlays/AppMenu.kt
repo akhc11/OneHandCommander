@@ -93,7 +93,7 @@ class AppMenu(
         }
 
         private fun loadStaticData(context: Context) {
-            // 1. 最大40個のアプリを取得しアイコンを LruCache へキャッシュ
+            // 1. 全アプリのリストを取得し、表示対象（上位40個）のアイコンを優先キャッシュ
             val pm = context.packageManager
             val intent = Intent(Intent.ACTION_MAIN, null).apply {
                 addCategory(Intent.CATEGORY_LAUNCHER)
@@ -101,23 +101,31 @@ class AppMenu(
             val resolveInfos: List<ResolveInfo> = pm.queryIntentActivities(intent, 0)
             val iconSizePx = UiHelper.dpToPx(context, 48)
 
-            val apps = resolveInfos.map { ri ->
-                val pkg = ri.activityInfo.packageName
-                if (AppIconCache.get(pkg) == null) {
-                    try {
-                        val icon = ri.loadIcon(pm)
-                        AppIconCache.putDrawable(pkg, icon, iconSizePx)
-                    } catch (e: Exception) {
-                        ErrorHandler.logError("Failed to cache icon for $pkg", e)
-                    }
-                }
+            val sortedApps = resolveInfos.map { ri ->
                 AppItem(
                     label = ri.loadLabel(pm).toString(),
-                    packageName = pkg
+                    packageName = ri.activityInfo.packageName
                 )
-            }.sortedBy { it.label.lowercase() }.take(40)
+            }.sortedBy { it.label.lowercase() }
 
-            memoryCachedApps = apps
+            // 上位40個のアイコンを高速先読み
+            val top40 = sortedApps.take(40)
+            val infoMap = resolveInfos.associateBy { it.activityInfo.packageName }
+            for (app in top40) {
+                if (AppIconCache.get(app.packageName) == null) {
+                    try {
+                        val ri = infoMap[app.packageName]
+                        if (ri != null) {
+                            val icon = ri.loadIcon(pm)
+                            AppIconCache.putDrawable(app.packageName, icon, iconSizePx)
+                        }
+                    } catch (e: Exception) {
+                        ErrorHandler.logError("Failed to cache icon for ${app.packageName}", e)
+                    }
+                }
+            }
+
+            memoryCachedApps = sortedApps
 
             // 2. 最近のファイル (最新4件)
             val list = mutableListOf<FileItem>()
@@ -326,8 +334,9 @@ class AppMenu(
             val cachedApps = memoryCachedApps
             if (cachedApps != null) {
                 allApps = cachedApps
-                appsAdapter.submitList(cachedApps) {
-                    emptyAppsTextView?.visibility = if (cachedApps.isEmpty()) View.VISIBLE else View.GONE
+                val displayList = cachedApps.take(40)
+                appsAdapter.submitList(displayList) {
+                    emptyAppsTextView?.visibility = if (displayList.isEmpty()) View.VISIBLE else View.GONE
                 }
             }
 
@@ -398,11 +407,11 @@ class AppMenu(
 
         // アプリ一覧フィルタリング (最大40個)
         val filteredApps = if (q.isEmpty()) {
-            allApps
+            allApps.take(40)
         } else {
             allApps.filter { 
                 it.label.lowercase().contains(q) || it.packageName.lowercase().contains(q) 
-            }
+            }.take(40)
         }
         appsAdapter.submitList(filteredApps) {
             emptyAppsTextView?.visibility = if (filteredApps.isEmpty()) View.VISIBLE else View.GONE
@@ -486,6 +495,24 @@ class AppMenu(
                 holder.iconView.setImageBitmap(cachedBitmap)
             } else {
                 holder.iconView.setImageResource(android.R.drawable.sym_def_app_icon)
+                // アイコン未キャッシュ時は非同期で読み込み
+                menuScope.launch(Dispatchers.IO) {
+                    try {
+                        val pm = context.packageManager
+                        val appInfo = pm.getApplicationInfo(item.packageName, 0)
+                        val icon = appInfo.loadIcon(pm)
+                        val iconSizePx = UiHelper.dpToPx(context, 48)
+                        AppIconCache.putDrawable(item.packageName, icon, iconSizePx)
+                        val bmp = AppIconCache.get(item.packageName)
+                        if (bmp != null) {
+                            withContext(Dispatchers.Main) {
+                                if (holder.bindingAdapterPosition == position) {
+                                    holder.iconView.setImageBitmap(bmp)
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
             }
 
             // 1〜40番まですべてのアプリに数字バッジを確実に表示

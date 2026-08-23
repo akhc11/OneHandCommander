@@ -40,6 +40,15 @@ abstract class BaseOverlay(
     }
 
     /**
+     * Viewの事前生成（初回タップ時のインフレート遅延を排除）
+     */
+    fun warmUp() {
+        if (overlayView == null) {
+            overlayView = createView()
+        }
+    }
+
+    /**
      * オーバーレイを非表示（WindowManagerから物理的に削除）
      */
     open fun hide() {
