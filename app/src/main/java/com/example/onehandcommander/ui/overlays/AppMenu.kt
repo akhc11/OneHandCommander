@@ -241,7 +241,7 @@ class AppMenu(
     private val longPressZeroRunnable = Runnable {
         if (!isZeroCommitted) {
             isZeroCommitted = true
-            Vibration.vibrateZeroLongPress(context)
+            Vibration.vibrateLongPress()
             hudDrawable.isLongPressZero = true
             hudDrawable.activeDigit = "0"
             hudDrawable.enteredBufferText = enteredBuffer.toString() + "0"
@@ -945,9 +945,9 @@ class AppMenu(
                         lastVibratedDigit = digit
                         val isDiagonal = (digit == "1" || digit == "3" || digit == "7" || digit == "9")
                         if (isDiagonal) {
-                            Vibration.vibrateDiagonalFlick(context)
+                            Vibration.vibrateDiagonal()
                         } else {
-                            Vibration.vibrateOrthogonalFlick(context)
+                            Vibration.vibrateOrthogonal()
                         }
                     }
 
@@ -1016,6 +1016,7 @@ class AppMenu(
             enteredBuffer.clear()
             hudDrawable.enteredBufferText = ""
             overlayView?.invalidate()
+            Vibration.vibrateSuccess()
             launchByNumber(finalInput)
         }
     }
