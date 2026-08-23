@@ -114,17 +114,20 @@ class Tenkey(
                 // 次のストローク開始により、1桁確定タイマーをキャンセル
                 mainHandler.removeCallbacks(singleDigitCommitRunnable)
 
-                // HUD更新
+                // HUD更新 (初期状態は中心「5」)
                 hudDrawable.isActive = true
                 hudDrawable.originX = startX
                 hudDrawable.originY = startY
                 hudDrawable.currentX = currentX
                 hudDrawable.currentY = currentY
-                hudDrawable.activeDigit = null
+                hudDrawable.activeDigit = "5"
                 hudDrawable.isLongPressZero = false
                 hudDrawable.enteredBufferText = enteredBuffer.toString()
 
-                // 長押し「0」タイマー開始 (300ms)
+                val previewStr = enteredBuffer.toString() + "5"
+                onInputUpdating?.invoke(previewStr)
+
+                // 長押し「0」タイマー開始 (600ms)
                 mainHandler.removeCallbacks(longPressZeroRunnable)
                 mainHandler.postDelayed(longPressZeroRunnable, Constants.TENKEY_LONG_PRESS_MS)
 

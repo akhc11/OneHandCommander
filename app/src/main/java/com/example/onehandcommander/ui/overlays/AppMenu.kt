@@ -1258,7 +1258,6 @@ class AppMenu(
     private inner class RecentFilesListAdapter : ListAdapter<FileItem, RecentFilesListAdapter.FileViewHolder>(FileDiffCallback()) {
         inner class FileViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
             val nameView: TextView = view.findViewById(R.id.file_name)
-            val infoView: TextView = view.findViewById(R.id.file_info)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileViewHolder {
@@ -1269,7 +1268,6 @@ class AppMenu(
         override fun onBindViewHolder(holder: FileViewHolder, position: Int) {
             val item = getItem(position)
             holder.nameView.text = item.name
-            holder.infoView.text = "${item.sizeFormatted} • ${item.timeFormatted}"
             holder.view.setOnClickListener {
                 Vibration.vibrateClick()
                 hide()
