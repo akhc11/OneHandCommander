@@ -6,6 +6,7 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import com.example.onehandcommander.R
 import com.example.onehandcommander.settings.SavedData
 import com.example.onehandcommander.ui.drawables.FloatRingDrawable
 import com.example.onehandcommander.utils.Constants
