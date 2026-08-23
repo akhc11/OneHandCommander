@@ -230,6 +230,7 @@ class AppMenu(
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
+            @Suppress("DEPRECATION")
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         }
     }
@@ -613,6 +614,17 @@ class AppMenu(
     }
 
     /**
+     * オーバーレイサービス上から安全かつ確実にダイアログを表示するヘルパー
+     */
+    private fun showOverlayDialog(dialog: AlertDialog) {
+        dialog.window?.let { window ->
+            // AccessibilityService のオーバーレイウィンドウタイプを設定
+            window.setType(WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY)
+        }
+        dialog.show()
+    }
+
+    /**
      * スロット長押し時のカスタマイズダイアログを表示
      */
     private fun showSlotCustomizeDialog(slotIndex: Int) {
@@ -645,15 +657,7 @@ class AppMenu(
             .setNegativeButton("キャンセル", null)
             .create()
 
-        // オーバーレイ上からダイアログを表示するための WindowType 設定
-        dialog.window?.setType(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            } else {
-                WindowManager.LayoutParams.TYPE_PHONE
-            }
-        )
-        dialog.show()
+        showOverlayDialog(dialog)
     }
 
     private fun showSystemActionPicker(slotIndex: Int) {
@@ -671,8 +675,7 @@ class AppMenu(
             .setNegativeButton("キャンセル", null)
             .create()
 
-        dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-        dialog.show()
+        showOverlayDialog(dialog)
     }
 
     private fun showAppPicker(slotIndex: Int) {
@@ -690,8 +693,7 @@ class AppMenu(
             .setNegativeButton("キャンセル", null)
             .create()
 
-        dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-        dialog.show()
+        showOverlayDialog(dialog)
     }
 
     private fun showRecentFilePicker(slotIndex: Int) {
@@ -713,8 +715,7 @@ class AppMenu(
             .setNegativeButton("キャンセル", null)
             .create()
 
-        dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-        dialog.show()
+        showOverlayDialog(dialog)
     }
 
     private fun showFeaturePicker(slotIndex: Int) {
@@ -732,8 +733,7 @@ class AppMenu(
             .setNegativeButton("キャンセル", null)
             .create()
 
-        dialog.window?.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-        dialog.show()
+        showOverlayDialog(dialog)
     }
 
     /**

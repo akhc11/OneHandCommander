@@ -146,7 +146,7 @@ sealed class MenuSlotAction {
                     "OPEN_FILE" -> OpenFile(
                         uriString = json.getString("uri"),
                         fileName = json.getString("name"),
-                        mimeType = json.optString("mime", null)
+                        mimeType = if (json.has("mime") && !json.isNull("mime")) json.getString("mime") else null
                     )
                     "CUSTOM_FEATURE" -> {
                         val feat = AppFeatureType.fromString(json.getString("feature"))

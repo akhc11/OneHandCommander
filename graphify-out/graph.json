@@ -1218,7 +1218,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/ui/overlays/AppMenu.kt",
-      "source_location": "L449",
+      "source_location": "L450",
       "weight": 1
     },
     {
@@ -1229,7 +1229,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/ui/overlays/AppMenu.kt",
-      "source_location": "L454",
+      "source_location": "L455",
       "weight": 1
     },
     {
@@ -1240,7 +1240,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/ui/overlays/AppMenu.kt",
-      "source_location": "L457",
+      "source_location": "L458",
       "weight": 1
     },
     {
@@ -1251,7 +1251,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/ui/overlays/AppMenu.kt",
-      "source_location": "L568",
+      "source_location": "L569",
       "weight": 1
     },
     {
@@ -1262,7 +1262,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/ui/overlays/AppMenu.kt",
-      "source_location": "L599",
+      "source_location": "L600",
       "weight": 1
     },
     {
@@ -1801,7 +1801,7 @@
       "relation": "imports_from",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/utils/Vibration.kt",
-      "source_location": "L7",
+      "source_location": "L8",
       "weight": 1
     },
     {
@@ -1812,7 +1812,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/utils/Vibration.kt",
-      "source_location": "L17",
+      "source_location": "L24",
       "weight": 1
     }
   ]
