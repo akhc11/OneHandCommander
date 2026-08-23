@@ -1,30 +1,30 @@
 package com.example.onehandcommander.ui.overlays
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Color
+import android.graphics.Canvas
 import android.graphics.PixelFormat
-import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.Drawable
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.Button
-import com.example.onehandcommander.R
 import com.example.onehandcommander.settings.SavedData
-import com.example.onehandcommander.ui.drawables.HudCornerDrawable
+import com.example.onehandcommander.ui.drawables.GestureTenkeyHudDrawable
 import com.example.onehandcommander.utils.Constants
 import com.example.onehandcommander.utils.UiHelper
 import com.example.onehandcommander.utils.Vibration
+import kotlin.math.atan2
+import kotlin.math.sqrt
 
 /**
- * テンキー入力UIの管理
- * - HudCornerDrawable によるサイバー/HUDコーナー枠線の一元描画（XML多重作成の完全廃止）
- * - 親GridLayoutレベルでの一元タッチハンドリングと $O(1)$ 高速ヒットテスト
- * - マルチタッチ耐性（activePointerId 追跡）
- * - 1〜40番のアプリ起動用スワイプ入力（単押し、2桁スワイプ入力、スワイプアウトによるゾロ目入力）
+ * ブラインド・相対座標ジェスチャーテンキー
+ * - 画面上の任意の位置をタッチ開始点 (startX, startY) とし、相対ベクトルで数字を判定
+ * - 2ストローク入力（1桁目フリック -> 200ms以内に2桁目フリックで即確定、200ms無操作で1桁確定）
+ * - 0の長押し（200ms）即確定（アプリ検索等の即時起動）
+ * - 方向ごとの触覚フィードバック（直交=軽、斜め=強、中心=ダブル、長押し0=重）
+ * - 視界を遮らないミニマルHUD (GestureTenkeyHudDrawable)
  */
 class Tenkey(
     context: Context,
@@ -35,227 +35,175 @@ class Tenkey(
     var onInput: ((String) -> Unit)? = null
     var onInputUpdating: ((String) -> Unit)? = null
 
-    private var startNumberBtn: Button? = null
-    private var currentHoverBtn: Button? = null
-    private var hasLeftStartBtn = false
-    private var activePointerId = MotionEvent.INVALID_POINTER_ID
-    private val tenkeyButtons = mutableListOf<Button>()
+    private val density = context.resources.displayMetrics.density
+    private val flickThresholdPx = UiHelper.dpToPx(context, Constants.SWIPE_THRESHOLD_DP).toFloat()
 
-    // コーナー描画用キャッシュDrawable（不要なGC・アロケーションを抑止）
-    private val transparentDrawable = ColorDrawable(Color.TRANSPARENT)
-    private val highlightDrawable = ColorDrawable(Color.parseColor(Constants.UI.Colors.TENKEY_HIGHLIGHT))
-    private val corner1Drawable by lazy { HudCornerDrawable(HudCornerDrawable.TOP_LEFT) }
-    private val corner3Drawable by lazy { HudCornerDrawable(HudCornerDrawable.TOP_RIGHT) }
-    private val corner7Drawable by lazy { HudCornerDrawable(HudCornerDrawable.BOTTOM_LEFT) }
-    private val corner9Drawable by lazy { HudCornerDrawable(HudCornerDrawable.BOTTOM_RIGHT) }
+    private val hudDrawable = GestureTenkeyHudDrawable(density)
+    private var gestureView: GestureSurfaceView? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
+    private var startX = 0f
+    private var startY = 0f
+    private var currentX = 0f
+    private var currentY = 0f
+
+    private var isZeroCommitted = false
+    private var lastVibratedDigit: String? = null
+
+    private val enteredBuffer = StringBuilder()
+
+    // 0判定用長押しタイマー (200ms)
+    private val longPressZeroRunnable = Runnable {
+        onZeroLongPressed()
+    }
+
+    // 1桁確定タイマー (200ms)
+    private val singleDigitCommitRunnable = Runnable {
+        commitSingleDigit()
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
     override fun createView(): View {
-        return LayoutInflater.from(context).inflate(R.layout.layout_tenkey, null).also { view ->
-            val alpha = SavedData.getTenkeyAlpha()
-            view.alpha = UiHelper.percentToAlpha(alpha)
-            val sizeDp = SavedData.getTenkeySize()
-            applySizeAndStyles(view, UiHelper.dpToPx(context, sizeDp))
-            setupSwipeInput(view)
-        }
+        val view = GestureSurfaceView(context)
+        view.setOnTouchListener { _, event -> handleTouchEvent(event) }
+        val alpha = SavedData.getTenkeyAlpha()
+        view.alpha = UiHelper.percentToAlpha(alpha)
+        gestureView = view
+        return view
     }
 
     override fun createLayoutParams(): WindowManager.LayoutParams {
         val alpha = SavedData.getTenkeyAlpha()
         return WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = SavedData.getTenkeyX()
-            y = SavedData.getTenkeyY()
+            x = 0
+            y = 0
             this.alpha = UiHelper.percentToAlpha(alpha)
         }
     }
 
-    /**
-     * サイズ・透明度・座標の更新（設定変更時に即座に反映）
-     */
     fun updateSize() {
-        val sizeDp = SavedData.getTenkeySize()
-        val sizePx = UiHelper.dpToPx(context, sizeDp)
         val alpha = SavedData.getTenkeyAlpha()
-
-        params.x = SavedData.getTenkeyX()
-        params.y = SavedData.getTenkeyY()
-
         overlayView?.let { view ->
             view.alpha = UiHelper.percentToAlpha(alpha)
-            applySizeAndStyles(view, sizePx)
             if (isVisible()) {
                 windowManager.updateViewLayout(view, params)
             }
         }
     }
 
-    override fun show() {
-        super.show()
-        val alpha = SavedData.getTenkeyAlpha()
-        params.x = SavedData.getTenkeyX()
-        params.y = SavedData.getTenkeyY()
-
-        overlayView?.let { view ->
-            view.alpha = UiHelper.percentToAlpha(alpha)
-            windowManager.updateViewLayout(view, params)
-        }
-    }
-
-    override fun onHidden() {
-        resetState()
-        super.onHidden()
-    }
-
-    override fun cleanup() {
-        resetState()
-        super.cleanup()
-    }
-
-    private fun resetState() {
-        highlight(currentHoverBtn, false)
-        highlight(startNumberBtn, false)
-        startNumberBtn = null
-        currentHoverBtn = null
-        hasLeftStartBtn = false
-        activePointerId = MotionEvent.INVALID_POINTER_ID
-        onInputUpdating?.invoke("")
-    }
-
-    private fun applySizeAndStyles(view: View, sizePx: Int) {
-        if (view is ViewGroup) {
-            for (i in 0 until view.childCount) {
-                val child = view.getChildAt(i)
-                if (child is Button) {
-                    child.isClickable = false
-                    child.isFocusable = false
-                    val p = child.layoutParams
-                    if (p.width != sizePx || p.height != sizePx) {
-                        p.width = sizePx
-                        p.height = sizePx
-                        child.layoutParams = p
-                    }
-                    child.background = getDefaultBackground(child.id)
-                    child.text = ""
-                }
-            }
-        }
-    }
-
-    private fun setupSwipeInput(view: View) {
-        tenkeyButtons.clear()
-        val ids = listOf(
-            R.id.btn_0, R.id.btn_1, R.id.btn_2, R.id.btn_3,
-            R.id.btn_4, R.id.btn_5, R.id.btn_6,
-            R.id.btn_7, R.id.btn_8, R.id.btn_9
-        )
-        ids.forEach { id ->
-            val btn = view.findViewById<Button>(id)
-            if (btn != null) {
-                tenkeyButtons.add(btn)
-            }
-        }
-
-        // 親 GridLayout 全体でタッチイベントをキャプチャ
-        view.setOnTouchListener { _, event -> handleRootTouch(event) }
-    }
-
-    private fun handleRootTouch(event: MotionEvent): Boolean {
+    private fun handleTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                activePointerId = event.getPointerId(0)
-                val initialBtn = findButtonFast(event.x, event.y) ?: return false
-                startNumberBtn = initialBtn
-                currentHoverBtn = initialBtn
-                hasLeftStartBtn = false
+                startX = event.rawX
+                startY = event.rawY
+                currentX = event.rawX
+                currentY = event.rawY
 
-                highlight(initialBtn, true)
-                Vibration.vibrateTick()
-                onInputUpdating?.invoke(getNumberFromButton(initialBtn))
+                isZeroCommitted = false
+                lastVibratedDigit = null
+
+                // 次のストローク開始により、1桁確定タイマーをキャンセル
+                mainHandler.removeCallbacks(singleDigitCommitRunnable)
+
+                // HUD更新
+                hudDrawable.isActive = true
+                hudDrawable.originX = startX
+                hudDrawable.originY = startY
+                hudDrawable.currentX = currentX
+                hudDrawable.currentY = currentY
+                hudDrawable.activeDigit = null
+                hudDrawable.isLongPressZero = false
+                hudDrawable.enteredBufferText = enteredBuffer.toString()
+
+                // 長押し「0」タイマー開始 (200ms)
+                mainHandler.removeCallbacks(longPressZeroRunnable)
+                mainHandler.postDelayed(longPressZeroRunnable, 200L)
+
+                gestureView?.invalidate()
                 return true
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (activePointerId == MotionEvent.INVALID_POINTER_ID) return false
-                val pointerIndex = event.findPointerIndex(activePointerId)
-                if (pointerIndex < 0) return true
+                if (isZeroCommitted) return true
 
-                val currentX = event.getX(pointerIndex)
-                val currentY = event.getY(pointerIndex)
-                val hovered = findButtonFast(currentX, currentY)
+                currentX = event.rawX
+                currentY = event.rawY
+                hudDrawable.currentX = currentX
+                hudDrawable.currentY = currentY
 
-                if (hovered != null && hovered != startNumberBtn) {
-                    hasLeftStartBtn = true
-                } else if (hovered == null && startNumberBtn != null) {
-                    hasLeftStartBtn = true
-                }
+                val dx = currentX - startX
+                val dy = currentY - startY
+                val distance = sqrt((dx * dx + dy * dy).toDouble()).toFloat()
 
-                if (hovered != currentHoverBtn) {
-                    highlight(currentHoverBtn, false)
-                    currentHoverBtn = hovered
-                    highlight(currentHoverBtn, true)
+                if (distance >= flickThresholdPx) {
+                    // 移動が発生したため長押し0をキャンセル
+                    mainHandler.removeCallbacks(longPressZeroRunnable)
 
-                    if (startNumberBtn != null) {
-                        val s = getNumberFromButton(startNumberBtn)
-                        val previewStr = when {
-                            hovered == null -> if (hasLeftStartBtn) s + s else s
-                            hovered == startNumberBtn -> if (hasLeftStartBtn) s + s else s
-                            else -> s + getNumberFromButton(hovered)
+                    val angleDeg = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble()))
+                    val digit = getDigitForAngle(angleDeg)
+                    hudDrawable.activeDigit = digit
+
+                    val previewStr = enteredBuffer.toString() + digit
+                    onInputUpdating?.invoke(previewStr)
+
+                    if (digit != lastVibratedDigit) {
+                        lastVibratedDigit = digit
+                        if (isDiagonal(digit)) {
+                            Vibration.vibrateDiagonal()
+                        } else {
+                            Vibration.vibrateOrthogonal()
                         }
-                        onInputUpdating?.invoke(previewStr)
-                    }
-                    if (hovered != null) {
-                        Vibration.vibrateTick()
-                    }
-                }
-                return true
-            }
-
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                highlight(currentHoverBtn, false)
-                highlight(startNumberBtn, false)
-
-                if (startNumberBtn != null && event.actionMasked == MotionEvent.ACTION_UP) {
-                    val s = getNumberFromButton(startNumberBtn)
-                    val finalNumber = when {
-                        currentHoverBtn != null -> {
-                            if (startNumberBtn == currentHoverBtn) {
-                                if (hasLeftStartBtn) s + s else s
-                            } else {
-                                s + getNumberFromButton(currentHoverBtn)
-                            }
-                        }
-                        hasLeftStartBtn -> s + s
-                        else -> null
-                    }
-
-                    if (finalNumber != null) {
-                        onInput?.invoke(finalNumber)
-                    } else {
-                        onInputUpdating?.invoke("")
                     }
                 } else {
-                    onInputUpdating?.invoke("")
+                    hudDrawable.activeDigit = "5"
+                    val previewStr = enteredBuffer.toString() + "5"
+                    onInputUpdating?.invoke(previewStr)
                 }
 
-                startNumberBtn = null
-                currentHoverBtn = null
-                hasLeftStartBtn = false
-                activePointerId = MotionEvent.INVALID_POINTER_ID
+                gestureView?.invalidate()
                 return true
             }
 
-            MotionEvent.ACTION_POINTER_UP -> {
-                val pointerIndex = event.actionIndex
-                if (event.getPointerId(pointerIndex) == activePointerId) {
-                    activePointerId = MotionEvent.INVALID_POINTER_ID
+            MotionEvent.ACTION_UP -> {
+                mainHandler.removeCallbacks(longPressZeroRunnable)
+                hudDrawable.isActive = false
+
+                if (isZeroCommitted) {
+                    gestureView?.invalidate()
+                    return true
                 }
+
+                val dx = currentX - startX
+                val dy = currentY - startY
+                val distance = sqrt((dx * dx + dy * dy).toDouble()).toFloat()
+
+                val digit = if (distance >= flickThresholdPx) {
+                    val angleDeg = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble()))
+                    getDigitForAngle(angleDeg)
+                } else {
+                    Vibration.vibrateCenterTap()
+                    "5"
+                }
+
+                onDigitReceived(digit)
+                gestureView?.invalidate()
+                return true
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                mainHandler.removeCallbacks(longPressZeroRunnable)
+                hudDrawable.isActive = false
+                onInputUpdating?.invoke("")
+                gestureView?.invalidate()
                 return true
             }
         }
@@ -263,48 +211,119 @@ class Tenkey(
     }
 
     /**
-     * 高速 $O(1)$ ヒットテスト:
-     * 親GridLayoutのローカル座標 (rootX, rootY) で各Buttonの矩形を即座に判定
+     * 長押しで「0」が確定した際の処理（即時実行・0番/検索呼び出し）
      */
-    private fun findButtonFast(rootX: Float, rootY: Float): Button? {
-        for (btn in tenkeyButtons) {
-            if (rootX >= btn.left && rootX <= btn.right &&
-                rootY >= btn.top && rootY <= btn.bottom) {
-                return btn
-            }
-        }
-        return null
+    private fun onZeroLongPressed() {
+        isZeroCommitted = true
+        hudDrawable.isLongPressZero = true
+        hudDrawable.activeDigit = "0"
+        Vibration.vibrateLongPress()
+
+        mainHandler.removeCallbacks(singleDigitCommitRunnable)
+        enteredBuffer.clear()
+        enteredBuffer.append("0")
+
+        gestureView?.invalidate()
+        commitAndReset()
     }
 
-    private fun getNumberFromButton(btn: Button?): String {
-        if (btn == null) return ""
-        return when (btn.id) {
-            R.id.btn_0 -> "0"
-            R.id.btn_1 -> "1"
-            R.id.btn_2 -> "2"
-            R.id.btn_3 -> "3"
-            R.id.btn_4 -> "4"
-            R.id.btn_5 -> "5"
-            R.id.btn_6 -> "6"
-            R.id.btn_7 -> "7"
-            R.id.btn_8 -> "8"
-            R.id.btn_9 -> "9"
-            else -> ""
+    /**
+     * 1桁または2桁目の数字入力を受け付け
+     */
+    private fun onDigitReceived(digit: String) {
+        if (enteredBuffer.isEmpty()) {
+            // 1桁目ストック
+            enteredBuffer.append(digit)
+            hudDrawable.enteredBufferText = digit
+            onInputUpdating?.invoke(digit)
+
+            // 200ms待機タイマー開始（2桁目入力がなければ1桁で確定）
+            mainHandler.removeCallbacks(singleDigitCommitRunnable)
+            mainHandler.postDelayed(singleDigitCommitRunnable, 200L)
+        } else {
+            // 2桁目決定 -> 即確定
+            enteredBuffer.append(digit)
+            mainHandler.removeCallbacks(singleDigitCommitRunnable)
+            Vibration.vibrateSuccess()
+            commitAndReset()
         }
     }
 
-    private fun getDefaultBackground(btnId: Int): Drawable {
-        return when (btnId) {
-            R.id.btn_1 -> corner1Drawable
-            R.id.btn_3 -> corner3Drawable
-            R.id.btn_7 -> corner7Drawable
-            R.id.btn_9 -> corner9Drawable
-            else -> transparentDrawable
+    /**
+     * 1桁確定タイマー満了時（1桁の数字として確定）
+     */
+    private fun commitSingleDigit() {
+        if (enteredBuffer.isNotEmpty()) {
+            commitAndReset()
         }
     }
 
-    private fun highlight(btn: Button?, on: Boolean) {
-        if (btn == null) return
-        btn.background = if (on) highlightDrawable else getDefaultBackground(btn.id)
+    /**
+     * バッファの内容をリスナーに通知し、リセット
+     */
+    private fun commitAndReset() {
+        val result = enteredBuffer.toString()
+        enteredBuffer.clear()
+        hudDrawable.enteredBufferText = ""
+        hudDrawable.isActive = false
+        hudDrawable.isLongPressZero = false
+        hudDrawable.activeDigit = null
+        gestureView?.invalidate()
+        onInputUpdating?.invoke("")
+
+        if (result.isNotEmpty()) {
+            onInput?.invoke(result)
+        }
+    }
+
+    /**
+     * 角度（-180° 〜 +180°）から数字（1〜4, 6〜9）をマッピング
+     * 1: 左上 (-135°), 2: 上 (-90°), 3: 右上 (-45°)
+     * 4: 左 (±180°),   6: 右 (0°)
+     * 7: 左下 (+135°), 8: 下 (+90°), 9: 右下 (+45°)
+     */
+    private fun getDigitForAngle(angle: Double): String {
+        return when {
+            angle >= -157.5 && angle < -112.5 -> "1"
+            angle >= -112.5 && angle < -67.5 -> "2"
+            angle >= -67.5 && angle < -22.5 -> "3"
+            angle >= -22.5 && angle < 22.5 -> "6"
+            angle >= 22.5 && angle < 67.5 -> "9"
+            angle >= 67.5 && angle < 112.5 -> "8"
+            angle >= 112.5 && angle < 157.5 -> "7"
+            else -> "4"
+        }
+    }
+
+    private fun isDiagonal(digit: String): Boolean {
+        return digit == "1" || digit == "3" || digit == "7" || digit == "9"
+    }
+
+    override fun onHidden() {
+        mainHandler.removeCallbacks(longPressZeroRunnable)
+        mainHandler.removeCallbacks(singleDigitCommitRunnable)
+        enteredBuffer.clear()
+        hudDrawable.isActive = false
+        hudDrawable.enteredBufferText = ""
+        onInputUpdating?.invoke("")
+        super.onHidden()
+    }
+
+    override fun cleanup() {
+        mainHandler.removeCallbacks(longPressZeroRunnable)
+        mainHandler.removeCallbacks(singleDigitCommitRunnable)
+        enteredBuffer.clear()
+        super.cleanup()
+    }
+
+    /**
+     * 軽量Canvas描画用サーフェスビュー
+     */
+    private inner class GestureSurfaceView(context: Context) : View(context) {
+        override fun onDraw(canvas: Canvas) {
+            super.onDraw(canvas)
+            hudDrawable.setBounds(0, 0, width, height)
+            hudDrawable.draw(canvas)
+        }
     }
 }
