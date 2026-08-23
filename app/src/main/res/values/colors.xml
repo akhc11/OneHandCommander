@@ -2,4 +2,25 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- Primary / Accent -->
+    <color name="primary">#00E5FF</color>
+    <color name="primary_variant">#00B0FF</color>
+    <color name="primary_container">#1A00E5FF</color>
+    
+    <!-- Status Colors -->
+    <color name="status_active">#00E676</color>
+    <color name="status_active_bg">#1A00E676</color>
+    <color name="status_inactive">#FF5252</color>
+    <color name="status_inactive_bg">#1AFF5252</color>
+    
+    <!-- Card / Backgrounds -->
+    <color name="card_bg_dark">#1E222B</color>
+    <color name="card_stroke_dark">#2E3440</color>
+    <color name="badge_bg_dark">#282E3D</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#F0F4F8</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="text_muted">#64748B</color>
 </resources>

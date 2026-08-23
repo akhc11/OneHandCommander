@@ -5,12 +5,14 @@ package com.example.onehandcommander.settings.model
  */
 sealed class SettingItem {
     data class SectionHeader(
-        val titleResId: Int
+        val titleResId: Int,
+        val subtitleResId: Int? = null
     ) : SettingItem()
 
     data class Slider(
         val key: String,
         val labelResId: Int,
+        val descriptionResId: Int? = null,
         val currentValue: Int,
         val minValue: Int,
         val maxValue: Int,
@@ -21,7 +23,9 @@ sealed class SettingItem {
     data class Toggle(
         val key: String,
         val labelResId: Int,
+        val descriptionResId: Int? = null,
         val isChecked: Boolean,
         val onToggleChanged: (Boolean) -> Unit
     ) : SettingItem()
 }
+

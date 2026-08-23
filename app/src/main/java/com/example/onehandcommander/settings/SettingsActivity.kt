@@ -8,15 +8,20 @@ import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.onehandcommander.R
+import com.example.onehandcommander.core.MainService
 import com.example.onehandcommander.utils.ErrorHandler
 
 /**
  * アプリケーション設定画面
- * 責務: パーミッション要求、アクセシビリティ設定画面へのインテント起動、設定項目のバインディング
+ * 責務: パーミッション要求、アクセシビリティ設定画面へのインテント起動、設定項目のバインディング、
+ * サービスステータスの動的表示および設定リセット機能
  */
 class SettingsActivity : AppCompatActivity() {
 
@@ -26,6 +31,9 @@ class SettingsActivity : AppCompatActivity() {
 
     private lateinit var settingsContainer: LinearLayout
     private lateinit var viewBinder: SettingsViewBinder
+    private lateinit var tvServiceStatusBadge: TextView
+    private lateinit var tvServiceStatusDesc: TextView
+    private lateinit var btnOpenSettings: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,8 +43,16 @@ class SettingsActivity : AppCompatActivity() {
         viewBinder = SettingsViewBinder(this)
 
         settingsContainer = findViewById(R.id.layout_commands)
-        findViewById<Button>(R.id.btn_open_settings).setOnClickListener {
+        tvServiceStatusBadge = findViewById(R.id.tv_service_status_badge)
+        tvServiceStatusDesc = findViewById(R.id.tv_service_status_desc)
+        btnOpenSettings = findViewById(R.id.btn_open_settings)
+
+        btnOpenSettings.setOnClickListener {
             openAccessibilitySettings()
+        }
+
+        findViewById<Button>(R.id.btn_reset_settings).setOnClickListener {
+            showResetConfirmationDialog()
         }
 
         requestNotificationPermissionIfNeeded()
@@ -45,8 +61,49 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // 戻ってきた際に最新値を再描画
+        updateServiceStatus()
         renderSettings()
+    }
+
+    private fun updateServiceStatus() {
+        val isEnabled = isAccessibilityServiceEnabled()
+        if (isEnabled) {
+            tvServiceStatusBadge.text = getString(R.string.service_status_active)
+            tvServiceStatusBadge.setTextColor(ContextCompat.getColor(this, R.color.status_active))
+            tvServiceStatusBadge.background = ContextCompat.getDrawable(this, R.drawable.bg_status_badge_active)
+            tvServiceStatusDesc.text = getString(R.string.service_status_desc_active)
+        } else {
+            tvServiceStatusBadge.text = getString(R.string.service_status_inactive)
+            tvServiceStatusBadge.setTextColor(ContextCompat.getColor(this, R.color.status_inactive))
+            tvServiceStatusBadge.background = ContextCompat.getDrawable(this, R.drawable.bg_status_badge_inactive)
+            tvServiceStatusDesc.text = getString(R.string.service_status_desc_inactive)
+        }
+    }
+
+    private fun isAccessibilityServiceEnabled(): Boolean {
+        val expectedComponentName = "${packageName}/${MainService::class.java.canonicalName}"
+        val enabledServices = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ) ?: return false
+
+        return enabledServices.split(":").any { 
+            it.equals(expectedComponentName, ignoreCase = true) ||
+            it.contains(packageName) && it.contains("MainService")
+        }
+    }
+
+    private fun showResetConfirmationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_reset_confirm_title)
+            .setMessage(R.string.dialog_reset_confirm_message)
+            .setPositiveButton(R.string.dialog_btn_reset) { _, _ ->
+                SavedData.resetToDefaults()
+                renderSettings()
+                Toast.makeText(this, R.string.toast_reset_completed, Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(R.string.dialog_btn_cancel, null)
+            .show()
     }
 
     private fun renderSettings() {
@@ -78,3 +135,4 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 }
+

@@ -238,6 +238,32 @@ object SavedData {
         prefs.edit().putString(KEY_RECENT_APPS, trimmed.joinToString(",")).apply()
     }
 
+    /**
+     * すべてのパラメータを初期値（デフォルト設定）に一括リセット
+     */
+    fun resetToDefaults() {
+        prefs.edit()
+            .putInt(KEY_POS_X, Constants.Defaults.BUTTON_POS_X)
+            .putInt(KEY_POS_Y, Constants.Defaults.BUTTON_POS_Y)
+            .putInt(KEY_SIZE_BUTTON, Constants.Defaults.BUTTON_SIZE_DP)
+            .putInt(KEY_BUTTON_ALPHA, Constants.Defaults.BUTTON_ALPHA)
+            .putBoolean(KEY_ENABLE_VIBRATION, Constants.Defaults.VIBRATION_ENABLED)
+            .putInt(KEY_SIZE_TENKEY, Constants.Defaults.TENKEY_SIZE_DP)
+            .putInt(KEY_TENKEY_ALPHA, Constants.Defaults.TENKEY_ALPHA)
+            .putInt(KEY_TENKEY_X, Constants.Defaults.TENKEY_X)
+            .putInt(KEY_TENKEY_Y, Constants.Defaults.TENKEY_Y)
+            .putInt(KEY_SIZE_PAD_W, Constants.Defaults.TOUCHPAD_WIDTH_DP)
+            .putInt(KEY_SIZE_PAD_H, Constants.Defaults.TOUCHPAD_HEIGHT_DP)
+            .putInt(KEY_PAD_ALPHA, Constants.Defaults.TOUCHPAD_ALPHA)
+            .putInt(KEY_PAD_X, Constants.Defaults.TOUCHPAD_X)
+            .putInt(KEY_PAD_Y, Constants.Defaults.TOUCHPAD_Y)
+            .putFloat(KEY_CURSOR_SPEED, Constants.Defaults.CURSOR_SPEED)
+            .putInt(KEY_CURSOR_THRESHOLD, Constants.Defaults.CURSOR_THRESHOLD)
+            .putLong(KEY_TOUCHPAD_LP_DELAY, Constants.Defaults.TOUCHPAD_LP_DELAY_MS)
+            .putInt(KEY_TOUCHPAD_LP_PLAY, Constants.Defaults.TOUCHPAD_LP_PLAY_PX)
+            .apply()
+    }
+
     // ==========================================
     // 変更リスナー管理
     // ==========================================

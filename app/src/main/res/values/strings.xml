@@ -4,6 +4,22 @@
     <string name="notification_service_text">片手操作ボタンを表示しています</string>
     <string name="fgs_special_use_subtype">アクセシビリティ操作用の常駐オーバーレイを維持するため</string>
 
+    <!-- UI Header & Status -->
+    <string name="settings_title">OneHandCommander</string>
+    <string name="settings_subtitle">片手操作・オーバーレイ詳細設定</string>
+    <string name="service_status_title">ユーザー補助サービス</string>
+    <string name="service_status_active">稼働中（正常）</string>
+    <string name="service_status_inactive">停止中（タップして許可）</string>
+    <string name="service_status_desc_active">オーバーレイ機能が有効になっています</string>
+    <string name="service_status_desc_inactive">本アプリの機能を使用するには、ユーザー補助の権限をONにしてください</string>
+    <string name="btn_open_accessibility">ユーザー補助設定を開く</string>
+    <string name="btn_reset_all_settings">すべての設定を初期値に戻す</string>
+    <string name="dialog_reset_confirm_title">設定のリセット</string>
+    <string name="dialog_reset_confirm_message">すべてのサイズ・位置・透明度・感度設定を初期値に戻しますか？</string>
+    <string name="dialog_btn_reset">リセット</string>
+    <string name="dialog_btn_cancel">キャンセル</string>
+    <string name="toast_reset_completed">設定を初期値に戻しました</string>
+
     <!-- Toast Messages -->
     <string name="toast_position_saved">位置を保存しました</string>
     <string name="toast_touchpad_mode">Touchpad Mode</string>
@@ -24,22 +40,63 @@
     <string name="error_permission">権限がありません</string>
     <string name="error_settings">設定の読み込みに失敗しました</string>
 
-    <!-- Settings Labels -->
-    <string name="settings_section_button">【メインボタン設定】</string>
-    <string name="settings_section_tenkey">【テンキー設定】</string>
-    <string name="settings_section_touchpad">【タッチパッド設定】</string>
-    <string name="settings_label_size">サイズ</string>
+    <!-- Settings Sections -->
+    <string name="settings_section_button">フローティングボタン (FAB)</string>
+    <string name="settings_section_button_desc">画面端に常駐する操作トリガーボタンの設定</string>
+    <string name="settings_section_tenkey">テンキー (アプリセレクター)</string>
+    <string name="settings_section_tenkey_desc">数字キー入力による高速アプリアクセス設定</string>
+    <string name="settings_section_touchpad">タッチパッド・仮想カーソル</string>
+    <string name="settings_section_touchpad_desc">片手で画面上部へ届くポインターとジェスチャー設定</string>
+
+    <!-- Settings Labels & Descriptions -->
+    <string name="settings_label_button_size">ボタンサイズ</string>
+    <string name="settings_desc_button_size">常駐するフローティングボタンの直径</string>
+    
+    <string name="settings_label_button_alpha">不透明度</string>
+    <string name="settings_desc_button_alpha">ボタンの濃さ (低いほど透けます)</string>
+
     <string name="settings_label_vibration">振動フィードバック</string>
-    <string name="settings_label_width">幅</string>
-    <string name="settings_label_height">高さ</string>
-    <string name="settings_label_opacity">不透明度(%%)</string>
-    <string name="settings_label_x">X座標</string>
-    <string name="settings_label_y">Y座標</string>
-    <string name="settings_label_cursor_speed">カーソル速度 (x1.0~)</string>
-    <string name="settings_label_cursor_speed_format">カーソル速度: %1$.1fx</string>
-    <string name="settings_label_cursor_threshold">感度しきい値(px)</string>
-    <string name="settings_label_long_press_delay">ドラッグ長押し時間(ms)</string>
-    <string name="settings_label_long_press_play">長押し遊び範囲(px)</string>
+    <string name="settings_desc_vibration">ボタンタップや操作時に触覚フィードバックを行う</string>
+
+    <string name="settings_label_tenkey_size">テンキーサイズ</string>
+    <string name="settings_desc_tenkey_size">テンキー全体の大きさ</string>
+
+    <string name="settings_label_tenkey_alpha">テンキー不透明度</string>
+    <string name="settings_desc_tenkey_alpha">テンキーパネルの濃さ</string>
+
+    <string name="settings_label_tenkey_x">テンキー X座標</string>
+    <string name="settings_desc_tenkey_x">初期表示時の水平オフセット</string>
+
+    <string name="settings_label_tenkey_y">テンキー Y座標</string>
+    <string name="settings_desc_tenkey_y">初期表示時の垂直オフセット</string>
+
+    <string name="settings_label_pad_w">パッド幅</string>
+    <string name="settings_desc_pad_w">タッチパッド操作エリアの横幅</string>
+
+    <string name="settings_label_pad_h">パッド高さ</string>
+    <string name="settings_desc_pad_h">タッチパッド操作エリアの縦幅</string>
+
+    <string name="settings_label_pad_alpha">パッド不透明度</string>
+    <string name="settings_desc_pad_alpha">タッチパッド操作エリアの濃さ</string>
+
+    <string name="settings_label_pad_x">パッド X座標</string>
+    <string name="settings_desc_pad_x">タッチパッドの水平配置位置</string>
+
+    <string name="settings_label_pad_y">パッド Y座標</string>
+    <string name="settings_desc_pad_y">タッチパッドの垂直配置位置</string>
+
+    <string name="settings_label_cursor_speed">カーソル移動速度</string>
+    <string name="settings_desc_cursor_speed">指の移動に対するカーソルの感度比率</string>
+    <string name="settings_label_cursor_speed_format">感度: %1$.1fx</string>
+
+    <string name="settings_label_cursor_threshold">感度しきい値</string>
+    <string name="settings_desc_cursor_threshold">ポインター移動を開始する最小移動ピクセル数</string>
+
+    <string name="settings_label_long_press_delay">ドラッグ開始判定時間</string>
+    <string name="settings_desc_long_press_delay">長押しでドラッグ操作に移行するまでの待機時間</string>
+
+    <string name="settings_label_long_press_play">長押し遊び範囲</string>
+    <string name="settings_desc_long_press_play">長押し待機中に指のブレを許容するピクセル範囲</string>
 
     <!-- System Action Names -->
     <string name="action_back">戻る</string>
