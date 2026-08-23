@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.example.onehandcommander.settings.model.ButtonConfig
 import com.example.onehandcommander.settings.model.TenkeyConfig
 import com.example.onehandcommander.settings.model.TouchpadConfig
+import com.example.onehandcommander.ui.overlays.model.MenuSlotAction
 import com.example.onehandcommander.utils.Constants
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -237,6 +238,38 @@ object SavedData {
         val raw = prefs.getString(KEY_RECENT_APPS, "") ?: ""
         if (raw.isBlank()) return emptyList()
         return raw.split(",").filter { it.isNotBlank() }
+    }
+
+    // ----- メニュースロット（01〜40）カスタム割り当て保存・読み込み -----
+    private fun getSlotKey(slotIndex: Int) = "menu_slot_action_$slotIndex"
+
+    fun getMenuSlotAction(context: Context, slotIndex: Int): MenuSlotAction {
+        if (!::prefs.isInitialized) {
+            init(context)
+        }
+        val json = prefs.getString(getSlotKey(slotIndex), null)
+        return MenuSlotAction.fromJson(json)
+    }
+
+    fun saveMenuSlotAction(context: Context, slotIndex: Int, action: MenuSlotAction) {
+        if (!::prefs.isInitialized) {
+            init(context)
+        }
+        prefs.edit().putString(getSlotKey(slotIndex), action.toJson()).apply()
+    }
+
+    fun resetMenuSlotAction(context: Context, slotIndex: Int) {
+        if (!::prefs.isInitialized) {
+            init(context)
+        }
+        prefs.edit().remove(getSlotKey(slotIndex)).apply()
+    }
+
+    fun hasCustomSlotAction(context: Context, slotIndex: Int): Boolean {
+        if (!::prefs.isInitialized) {
+            init(context)
+        }
+        return prefs.contains(getSlotKey(slotIndex))
     }
 
     fun addRecentApp(packageName: String) {

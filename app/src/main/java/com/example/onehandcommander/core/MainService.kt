@@ -181,6 +181,47 @@ class MainService : AccessibilityService() {
         overlayManager.tenkeyManager.onInputUpdating = { previewNum ->
             overlayManager.appMenu.previewByNumber(previewNum)
         }
+
+        // AppMenu からのシステム操作リクエスト (ホーム・戻る・通知・履歴・電源・スクショ)
+        overlayManager.appMenu.onSystemActionRequested = { actionType ->
+            stateManager.processIntent(ServiceIntent.DismissMenu)
+            when (actionType) {
+                com.example.onehandcommander.ui.overlays.model.SystemActionType.HOME -> {
+                    performGlobalAction(GLOBAL_ACTION_HOME)
+                }
+                com.example.onehandcommander.ui.overlays.model.SystemActionType.BACK -> {
+                    performGlobalAction(GLOBAL_ACTION_BACK)
+                }
+                com.example.onehandcommander.ui.overlays.model.SystemActionType.RECENTS -> {
+                    performGlobalAction(GLOBAL_ACTION_RECENTS)
+                }
+                com.example.onehandcommander.ui.overlays.model.SystemActionType.NOTIFICATIONS -> {
+                    performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
+                }
+                com.example.onehandcommander.ui.overlays.model.SystemActionType.SCREENSHOT -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        performGlobalAction(GLOBAL_ACTION_TAKE_SCREENSHOT)
+                    } else {
+                        UiHelper.showToast(this, "お使いのOSバージョンでは非対応です")
+                    }
+                }
+                com.example.onehandcommander.ui.overlays.model.SystemActionType.POWER_DIALOG -> {
+                    performGlobalAction(GLOBAL_ACTION_POWER_DIALOG)
+                }
+            }
+        }
+
+        // AppMenu からの便利機能リクエスト (タッチパッド起動等)
+        overlayManager.appMenu.onFeatureActionRequested = { featureType ->
+            when (featureType) {
+                com.example.onehandcommander.ui.overlays.model.AppFeatureType.LAUNCH_TOUCHPAD -> {
+                    stateManager.processIntent(ServiceIntent.SwipeFloatingButton)
+                }
+                com.example.onehandcommander.ui.overlays.model.AppFeatureType.OPEN_SETTINGS -> {
+                    stateManager.processIntent(ServiceIntent.DismissMenu)
+                }
+            }
+        }
     }
 
     private fun startForegroundSafely() {
