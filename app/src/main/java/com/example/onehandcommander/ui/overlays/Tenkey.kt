@@ -124,9 +124,9 @@ class Tenkey(
                 hudDrawable.isLongPressZero = false
                 hudDrawable.enteredBufferText = enteredBuffer.toString()
 
-                // 長押し「0」タイマー開始 (200ms)
+                // 長押し「0」タイマー開始 (300ms)
                 mainHandler.removeCallbacks(longPressZeroRunnable)
-                mainHandler.postDelayed(longPressZeroRunnable, 200L)
+                mainHandler.postDelayed(longPressZeroRunnable, Constants.TENKEY_LONG_PRESS_MS)
 
                 gestureView?.invalidate()
                 return true
@@ -237,9 +237,9 @@ class Tenkey(
             hudDrawable.enteredBufferText = digit
             onInputUpdating?.invoke(digit)
 
-            // 200ms待機タイマー開始（2桁目入力がなければ1桁で確定）
+            // 650ms待機タイマー開始（2回目のスワイプを行うための十分な猶予時間を確保）
             mainHandler.removeCallbacks(singleDigitCommitRunnable)
-            mainHandler.postDelayed(singleDigitCommitRunnable, 200L)
+            mainHandler.postDelayed(singleDigitCommitRunnable, Constants.TENKEY_SINGLE_DIGIT_TIMEOUT_MS)
         } else {
             // 2桁目決定 -> 即確定
             enteredBuffer.append(digit)

@@ -18,6 +18,10 @@ object Constants {
     const val GESTURE_CLICK_DURATION_MS = 10L
     const val GESTURE_LONG_CLICK_DURATION_MS = 1000L
     const val GESTURE_MAX_STROKE_DURATION_MS = 5000L
+
+    // ブラインド・ジェスチャーテンキー定数
+    const val TENKEY_LONG_PRESS_MS = 300L
+    const val TENKEY_SINGLE_DIGIT_TIMEOUT_MS = 650L
     
     const val ALPHA_PERCENTAGE_DIVISOR = 100f
     
