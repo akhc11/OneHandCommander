@@ -16,6 +16,7 @@ import com.example.onehandcommander.R
 import com.example.onehandcommander.settings.SavedData
 import com.example.onehandcommander.core.GestureDispatcher
 import com.example.onehandcommander.ui.drawables.CursorDrawable
+import com.example.onehandcommander.ui.drawables.TouchpadWireframeDrawable
 import com.example.onehandcommander.utils.Constants
 import com.example.onehandcommander.utils.ErrorHandler
 import com.example.onehandcommander.utils.UiHelper
@@ -113,7 +114,7 @@ class Touchpad(
 
     override fun createView(): View {
         return FrameLayout(context).apply {
-            background = ContextCompat.getDrawable(context, R.drawable.bg_wireframe)
+            background = TouchpadWireframeDrawable(context)
             alpha = UiHelper.percentToAlpha(SavedData.getTouchpadAlpha())
             setupTouchLogic(this)
         }
