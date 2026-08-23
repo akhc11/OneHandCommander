@@ -44,6 +44,8 @@ object SavedData {
     const val KEY_CURSOR_THRESHOLD = "cursor_threshold"
     const val KEY_TOUCHPAD_LP_DELAY = "touchpad_lp_delay"
     const val KEY_TOUCHPAD_LP_PLAY = "touchpad_lp_play"
+    const val KEY_APP_MENU_X = "app_menu_x"
+    const val KEY_APP_MENU_Y = "app_menu_y"
     private const val KEY_RECENT_APPS = "recent_apps_list"
 
     private lateinit var prefs: SharedPreferences
@@ -222,6 +224,14 @@ object SavedData {
     fun getTouchpadLongPressPlay() = prefs.getInt(KEY_TOUCHPAD_LP_PLAY, Constants.Defaults.TOUCHPAD_LP_PLAY_PX)
     fun saveTouchpadLongPressPlay(px: Int) = prefs.edit().putInt(KEY_TOUCHPAD_LP_PLAY, px).apply()
 
+    // ----- アプリメニュー配置座標 (-1 の場合は画面中央) -----
+    fun getAppMenuX() = prefs.getInt(KEY_APP_MENU_X, -1)
+    fun getAppMenuY() = prefs.getInt(KEY_APP_MENU_Y, -1)
+    fun saveAppMenuPosition(x: Int, y: Int) = prefs.edit()
+        .putInt(KEY_APP_MENU_X, x)
+        .putInt(KEY_APP_MENU_Y, y)
+        .apply()
+
     // ----- 最近使ったアプリ履歴 (カンマ区切り文字列で永続化) -----
     fun getRecentApps(): List<String> {
         val raw = prefs.getString(KEY_RECENT_APPS, "") ?: ""
@@ -261,6 +271,8 @@ object SavedData {
             .putInt(KEY_CURSOR_THRESHOLD, Constants.Defaults.CURSOR_THRESHOLD)
             .putLong(KEY_TOUCHPAD_LP_DELAY, Constants.Defaults.TOUCHPAD_LP_DELAY_MS)
             .putInt(KEY_TOUCHPAD_LP_PLAY, Constants.Defaults.TOUCHPAD_LP_PLAY_PX)
+            .putInt(KEY_APP_MENU_X, -1)
+            .putInt(KEY_APP_MENU_Y, -1)
             .apply()
     }
 

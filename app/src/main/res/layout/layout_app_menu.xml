@@ -19,21 +19,41 @@
         android:clickable="true"
         android:focusable="true">
 
-        <!-- ① 上部: 単一の洗練された検索バー (0キーでフォーカス) -->
-        <EditText
-            android:id="@+id/edit_search"
+        <!-- ① 上部: 検索バー + ドラッグ移動ハンドル -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="34dp"
-            android:background="@drawable/bg_search_field"
-            android:hint="🔍 検索... (0キー)"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#7A7A8C"
-            android:textSize="11.5sp"
-            android:paddingHorizontal="10dp"
-            android:singleLine="true"
-            android:imeOptions="actionDone"
-            android:inputType="text"
-            android:layout_marginBottom="8dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <EditText
+                android:id="@+id/edit_search"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_search_field"
+                android:hint="🔍 検索... (0キー)"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#7A7A8C"
+                android:textSize="11.5sp"
+                android:paddingHorizontal="10dp"
+                android:singleLine="true"
+                android:imeOptions="actionDone"
+                android:inputType="text" />
+
+            <ImageView
+                android:id="@+id/iv_drag_handle"
+                android:layout_width="34dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_search_field"
+                android:src="@drawable/ic_drag_handle"
+                android:scaleType="center"
+                android:clickable="true"
+                android:focusable="false"
+                android:contentDescription="ドラッグしてメニューを移動" />
+        </LinearLayout>
 
         <!-- ② 真ん中: 横4列・縦横等間隔（56dp×56dpセル）アプリグリッド（40個まで・スクロール可能） -->
         <!-- 4段分(56dp×4 = 224dp)をジャスト表示 -->

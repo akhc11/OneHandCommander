@@ -11,6 +11,7 @@ import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -194,6 +195,13 @@ class AppMenu(
     private var previewIndex = -1
     private var isClearingSearch = false
 
+    private var menuCardView: View? = null
+    private var activePointerId = MotionEvent.INVALID_POINTER_ID
+    private var initialCardX = 0f
+    private var initialCardY = 0f
+    private var initialTouchRawX = 0f
+    private var initialTouchRawY = 0f
+
     override fun createLayoutParams(): WindowManager.LayoutParams {
         return WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -204,7 +212,7 @@ class AppMenu(
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.CENTER
+            gravity = Gravity.TOP or Gravity.START
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         }
     }
@@ -214,10 +222,20 @@ class AppMenu(
 
         val dimBackground = view.findViewById<View>(R.id.menu_dim_background)
         val menuCard = view.findViewById<View>(R.id.menu_card)
+        val dragHandle = view.findViewById<ImageView>(R.id.iv_drag_handle)
+        menuCardView = menuCard
 
         // 背景タップで閉じる
         dimBackground?.setOnClickListener { hide() }
         menuCard?.setOnClickListener { /* イベント消費 */ }
+
+        // 保存された座標の復元 (未設定 -1 の場合はレイアウト完了後に画面中央へ配置)
+        applySavedPosition(view, menuCard)
+
+        // ドラッグハンドルによるメニュー位置移動
+        dragHandle?.let { handle ->
+            setupDragHandle(handle, view, menuCard)
+        }
 
         searchInput = view.findViewById(R.id.edit_search)
         appsRecyclerView = view.findViewById(R.id.recycler_apps)
@@ -326,6 +344,11 @@ class AppMenu(
     override fun show() {
         try {
             super.show()
+            view?.let { root ->
+                menuCardView?.let { card ->
+                    applySavedPosition(root, card)
+                }
+            }
             isClearingSearch = true
             searchInput?.setText("")
             isClearingSearch = false
@@ -426,6 +449,94 @@ class AppMenu(
         val topFiles = matchedFiles.take(4)
         recentAdapter.submitList(topFiles) {
             emptyRecentTextView?.visibility = if (topFiles.isEmpty()) View.VISIBLE else View.GONE
+        }
+    }
+
+    /**
+     * 保存されているメニュー位置の復元 (未保存時は中央配置)
+     */
+    private fun applySavedPosition(rootView: View, menuCard: View) {
+        val savedX = SavedData.getAppMenuX()
+        val savedY = SavedData.getAppMenuY()
+
+        if (savedX >= 0 && savedY >= 0) {
+            menuCard.x = savedX.toFloat()
+            menuCard.y = savedY.toFloat()
+        } else {
+            // 初期状態は画面中央
+            rootView.post {
+                val parentWidth = rootView.width
+                val parentHeight = rootView.height
+                val cardWidth = menuCard.width
+                val cardHeight = menuCard.height
+
+                if (parentWidth > 0 && parentHeight > 0 && cardWidth > 0 && cardHeight > 0) {
+                    val centerX = ((parentWidth - cardWidth) / 2).coerceAtLeast(0).toFloat()
+                    val centerY = ((parentHeight - cardHeight) / 2).coerceAtLeast(0).toFloat()
+                    menuCard.x = centerX
+                    menuCard.y = centerY
+                }
+            }
+        }
+    }
+
+    /**
+     * ドラッグハンドルによる直感的なメニュー移動と座標自動保存
+     */
+    private fun setupDragHandle(handle: View, rootView: View, menuCard: View) {
+        handle.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    activePointerId = event.getPointerId(0)
+                    initialCardX = menuCard.x
+                    initialCardY = menuCard.y
+                    initialTouchRawX = event.rawX
+                    initialTouchRawY = event.rawY
+                    Vibration.vibrateClick()
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (activePointerId == MotionEvent.INVALID_POINTER_ID) return@setOnTouchListener false
+                    val pointerIndex = event.findPointerIndex(activePointerId)
+                    if (pointerIndex < 0) return@setOnTouchListener true
+
+                    val diffX = event.rawX - initialTouchRawX
+                    val diffY = event.rawY - initialTouchRawY
+
+                    val targetX = initialCardX + diffX
+                    val targetY = initialCardY + diffY
+
+                    // 画面外にはみ出さないよう Clamping
+                    val parentWidth = rootView.width.coerceAtLeast(1)
+                    val parentHeight = rootView.height.coerceAtLeast(1)
+                    val cardWidth = menuCard.width
+                    val cardHeight = menuCard.height
+
+                    val maxX = (parentWidth - cardWidth).coerceAtLeast(0).toFloat()
+                    val maxY = (parentHeight - cardHeight).coerceAtLeast(0).toFloat()
+
+                    menuCard.x = targetX.coerceIn(0f, maxX)
+                    menuCard.y = targetY.coerceIn(0f, maxY)
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (activePointerId != MotionEvent.INVALID_POINTER_ID) {
+                        val finalX = menuCard.x.toInt()
+                        val finalY = menuCard.y.toInt()
+                        SavedData.saveAppMenuPosition(finalX, finalY)
+                        activePointerId = MotionEvent.INVALID_POINTER_ID
+                    }
+                    true
+                }
+                MotionEvent.ACTION_POINTER_UP -> {
+                    val pointerIndex = event.actionIndex
+                    if (event.getPointerId(pointerIndex) == activePointerId) {
+                        activePointerId = MotionEvent.INVALID_POINTER_ID
+                    }
+                    true
+                }
+                else -> false
+            }
         }
     }
 
