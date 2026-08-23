@@ -3,11 +3,9 @@ package com.example.onehandcommander.ui.overlays
 import android.content.Context
 import android.graphics.PixelFormat
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import com.example.onehandcommander.R
 import com.example.onehandcommander.settings.SavedData
 import com.example.onehandcommander.ui.drawables.FloatRingDrawable
 import com.example.onehandcommander.utils.Constants
@@ -67,11 +65,10 @@ class FloatingButton(
     }
 
     override fun createView(): View {
-        return LayoutInflater.from(context)
-            .inflate(R.layout.layout_float_button, null).also { view ->
-                view.background = floatRingDrawable
-                setupTouchListener(view)
-            }
+        return View(context).also { view ->
+            view.background = floatRingDrawable
+            setupTouchListener(view)
+        }
     }
 
     override fun createLayoutParams(): WindowManager.LayoutParams {

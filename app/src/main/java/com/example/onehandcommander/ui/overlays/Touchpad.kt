@@ -7,13 +7,15 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.FrameLayout
+import androidx.core.content.ContextCompat
 import com.example.onehandcommander.R
 import com.example.onehandcommander.settings.SavedData
 import com.example.onehandcommander.core.GestureDispatcher
+import com.example.onehandcommander.ui.drawables.CursorDrawable
 import com.example.onehandcommander.utils.Constants
 import com.example.onehandcommander.utils.ErrorHandler
 import com.example.onehandcommander.utils.UiHelper
@@ -110,9 +112,10 @@ class Touchpad(
     }
 
     override fun createView(): View {
-        return LayoutInflater.from(context).inflate(R.layout.layout_touchpad, null).also { view ->
-            view.alpha = UiHelper.percentToAlpha(SavedData.getTouchpadAlpha())
-            setupTouchLogic(view)
+        return FrameLayout(context).apply {
+            background = ContextCompat.getDrawable(context, R.drawable.bg_wireframe)
+            alpha = UiHelper.percentToAlpha(SavedData.getTouchpadAlpha())
+            setupTouchLogic(this)
         }
     }
 
@@ -375,14 +378,18 @@ class Touchpad(
         Vibration.vibrateClick()
     }
 
+    private val cursorDrawable by lazy { CursorDrawable() }
+
     private fun showCursor() {
         if (cursorView == null) {
-            cursorView = LayoutInflater.from(context).inflate(R.layout.layout_cursor, null)
-            cursorView?.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+            val cursorSizePx = UiHelper.dpToPx(context, 24)
+            cursorView = View(context).apply {
+                background = cursorDrawable
+            }
 
             cursorParams = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
+                cursorSizePx,
+                cursorSizePx,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                         WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
