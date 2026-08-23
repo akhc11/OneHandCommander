@@ -2,6 +2,7 @@ package com.example.onehandcommander.ui.overlays
 
 import android.accessibilityservice.AccessibilityService
 import android.app.AlertDialog
+import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ResolveInfo
@@ -10,6 +11,7 @@ import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.ContextThemeWrapper
@@ -84,11 +86,13 @@ class AppMenu(
     )
 
     data class FileItem(
+        val uri: Uri,
         val name: String,
         val path: String,
         val sizeFormatted: String,
         val timeFormatted: String,
-        val lastModified: Long
+        val lastModified: Long,
+        val mimeType: String? = null
     )
 
     companion object {
@@ -151,40 +155,109 @@ class AppMenu(
 
             memoryCachedApps = sortedApps
 
-            // 2. 最近のファイル (最新4件)
+            // 2. MediaStore から直近のファイルインデックスを取得
+            memoryCachedFiles = queryMediaStoreFiles(context, searchQuery = null, limit = 30)
+        }
+
+        /**
+         * MediaStore を使用して端末全体のインデックスから高速ファイル検索
+         */
+        fun queryMediaStoreFiles(context: Context, searchQuery: String? = null, limit: Int = 30): List<FileItem> {
             val list = mutableListOf<FileItem>()
             val timeFormat = SimpleDateFormat("MM/dd HH:mm", Locale.getDefault())
-
-            val candidateDirs = listOfNotNull(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-                context.getExternalFilesDir(null)
+            val projection = arrayOf(
+                MediaStore.Files.FileColumns._ID,
+                MediaStore.Files.FileColumns.DISPLAY_NAME,
+                MediaStore.Files.FileColumns.SIZE,
+                MediaStore.Files.FileColumns.DATE_MODIFIED,
+                MediaStore.Files.FileColumns.MIME_TYPE
             )
+            val externalUri = MediaStore.Files.getContentUri("external")
+            val sortOrder = "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC"
 
-            val allFoundFiles = mutableListOf<File>()
-            for (dir in candidateDirs) {
-                if (dir.exists() && dir.canRead()) {
-                    dir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.let {
-                        allFoundFiles.addAll(it)
+            val (selection, selectionArgs) = if (!searchQuery.isNullOrBlank()) {
+                val q = "%${searchQuery.trim()}%"
+                ("${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ?", arrayOf(q))
+            } else {
+                (null, null)
+            }
+
+            try {
+                context.contentResolver.query(
+                    externalUri,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    sortOrder
+                )?.use { cursor ->
+                    val idCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID)
+                    val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
+                    val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
+                    val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_MODIFIED)
+                    val mimeCol = cursor.getColumnIndex(MediaStore.Files.FileColumns.MIME_TYPE)
+
+                    var count = 0
+                    while (cursor.moveToNext() && count < limit) {
+                        val id = cursor.getLong(idCol)
+                        val name = cursor.getString(nameCol) ?: continue
+                        if (name.startsWith(".")) continue // 隠しファイル除外
+                        val size = cursor.getLong(sizeCol)
+                        val dateModifiedSec = cursor.getLong(dateCol)
+                        val dateModifiedMs = dateModifiedSec * 1000L
+                        val mimeType = if (mimeCol != -1) cursor.getString(mimeCol) else null
+                        val contentUri = ContentUris.withAppendedId(externalUri, id)
+
+                        list.add(
+                            FileItem(
+                                uri = contentUri,
+                                name = name,
+                                path = contentUri.toString(),
+                                sizeFormatted = formatFileSize(size),
+                                timeFormatted = timeFormat.format(Date(if (dateModifiedMs > 0) dateModifiedMs else System.currentTimeMillis())),
+                                lastModified = dateModifiedMs,
+                                mimeType = mimeType
+                            )
+                        )
+                        count++
                     }
+                }
+            } catch (e: Exception) {
+                ErrorHandler.logError("MediaStore query failed", e)
+            }
+
+            // フォールバック: MediaStoreから0件の場合、主要公開フォルダ直下も補助走査
+            if (list.isEmpty() && searchQuery.isNullOrBlank()) {
+                val candidateDirs = listOfNotNull(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+                    context.getExternalFilesDir(null)
+                )
+                val allFoundFiles = mutableListOf<File>()
+                for (dir in candidateDirs) {
+                    if (dir.exists() && dir.canRead()) {
+                        dir.listFiles()?.filter { it.isFile && !it.name.startsWith(".") }?.let {
+                            allFoundFiles.addAll(it)
+                        }
+                    }
+                }
+                allFoundFiles.sortByDescending { it.lastModified() }
+                allFoundFiles.take(limit).forEach { f ->
+                    val uri = UiHelper.getContentUri(context, f)
+                    list.add(
+                        FileItem(
+                            uri = uri,
+                            name = f.name,
+                            path = f.absolutePath,
+                            sizeFormatted = formatFileSize(f.length()),
+                            timeFormatted = timeFormat.format(Date(f.lastModified())),
+                            lastModified = f.lastModified()
+                        )
+                    )
                 }
             }
 
-            allFoundFiles.sortByDescending { it.lastModified() }
-            allFoundFiles.take(10).forEach { f ->
-                list.add(
-                    FileItem(
-                        name = f.name,
-                        path = f.absolutePath,
-                        sizeFormatted = formatFileSize(f.length()),
-                        timeFormatted = timeFormat.format(Date(f.lastModified())),
-                        lastModified = f.lastModified()
-                    )
-                )
-            }
-
-            memoryCachedFiles = list
+            return list
         }
 
         private fun formatFileSize(bytes: Long): String {
@@ -199,6 +272,7 @@ class AppMenu(
     private val menuJob = SupervisorJob()
     private val menuScope = CoroutineScope(Dispatchers.Main + menuJob)
     private var loadJob: Job? = null
+    private var fileSearchJob: Job? = null
 
     private var allApps = listOf<AppItem>()
     private var allFiles = listOf<FileItem>()
@@ -584,6 +658,10 @@ class AppMenu(
 
         if (q.isEmpty()) {
             refreshGridItems()
+            val topFiles = allFiles.take(4)
+            recentAdapter.submitList(topFiles) {
+                emptyRecentTextView?.visibility = if (topFiles.isEmpty()) View.VISIBLE else View.GONE
+            }
         } else {
             // 検索時はマッチする全アプリを一覧表示
             val filteredApps = allApps.filter {
@@ -603,17 +681,29 @@ class AppMenu(
             gridAdapter.submitList(items) {
                 emptyAppsTextView?.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
             }
-        }
 
-        // 最近のファイル (最新4件固定)
-        val matchedFiles = if (q.isEmpty()) {
-            allFiles
-        } else {
-            allFiles.filter { it.name.lowercase().contains(q) }
-        }
-        val topFiles = matchedFiles.take(4)
-        recentAdapter.submitList(topFiles) {
-            emptyRecentTextView?.visibility = if (topFiles.isEmpty()) View.VISIBLE else View.GONE
+            // 1. まずメモリキャッシュから即座に絞り込み表示 (0ms レスポンス)
+            val memoryMatched = allFiles.filter { it.name.lowercase().contains(q) }.take(4)
+            recentAdapter.submitList(memoryMatched) {
+                emptyRecentTextView?.visibility = if (memoryMatched.isEmpty()) View.VISIBLE else View.GONE
+            }
+
+            // 2. MediaStore インデックスから端末全体のファイルを非同期検索
+            fileSearchJob?.cancel()
+            fileSearchJob = menuScope.launch(Dispatchers.IO) {
+                val dbResults = queryMediaStoreFiles(context, searchQuery = q, limit = 10)
+                if (dbResults.isNotEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        val currentQ = searchInput?.text?.toString().orEmpty().trim().lowercase()
+                        if (currentQ == q) {
+                            val topResults = dbResults.take(4)
+                            recentAdapter.submitList(topResults) {
+                                emptyRecentTextView?.visibility = if (topResults.isEmpty()) View.VISIBLE else View.GONE
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1051,6 +1141,7 @@ class AppMenu(
 
     override fun cleanup() {
         super.cleanup()
+        fileSearchJob?.cancel()
         menuJob.cancel()
     }
 
@@ -1068,7 +1159,7 @@ class AppMenu(
 
     private class FileDiffCallback : DiffUtil.ItemCallback<FileItem>() {
         override fun areItemsTheSame(oldItem: FileItem, newItem: FileItem): Boolean {
-            return oldItem.path == newItem.path
+            return oldItem.uri == newItem.uri
         }
 
         override fun areContentsTheSame(oldItem: FileItem, newItem: FileItem): Boolean {
@@ -1179,8 +1270,7 @@ class AppMenu(
             holder.view.setOnClickListener {
                 Vibration.vibrateClick()
                 hide()
-                val f = File(item.path)
-                UiHelper.shareFile(context, f)
+                UiHelper.openUri(context, item.uri, item.mimeType)
             }
         }
     }

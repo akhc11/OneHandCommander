@@ -68,13 +68,24 @@ object UiHelper {
     }
 
     /**
-     * ファイルを共有
+     * ファイルを共有 (File指定)
      */
     fun shareFile(context: Context, file: File) {
         try {
             val uri = getContentUri(context, file)
+            shareUri(context, uri, "*/*")
+        } catch (e: Exception) {
+            ErrorHandler.handleFileError(context, "share", e)
+        }
+    }
+
+    /**
+     * Uri指定でファイルを共有
+     */
+    fun shareUri(context: Context, uri: Uri, mimeType: String? = null) {
+        try {
             val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "*/*"
+                type = mimeType ?: "*/*"
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
@@ -84,6 +95,26 @@ object UiHelper {
             )
         } catch (e: Exception) {
             ErrorHandler.handleFileError(context, "share", e)
+        }
+    }
+
+    /**
+     * Uri指定でファイルを開く (ACTION_VIEW)
+     */
+    fun openUri(context: Context, uri: Uri, mimeType: String? = null) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mimeType ?: "*/*")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // VIEWで開けない場合は共有ダイアログを試行
+            try {
+                shareUri(context, uri, mimeType)
+            } catch (shareEx: Exception) {
+                ErrorHandler.handleError(context, "ファイルを開けません", e)
+            }
         }
     }
 
