@@ -2,8 +2,12 @@ package com.example.onehandcommander.core
 
 import com.example.onehandcommander.R
 import com.example.onehandcommander.settings.SavedData
+import com.example.onehandcommander.settings.SettingsActivity
 import com.example.onehandcommander.ui.overlays.AppMenu
+import com.example.onehandcommander.ui.overlays.model.AppFeatureType
+import com.example.onehandcommander.ui.overlays.model.SystemActionType
 import com.example.onehandcommander.utils.ErrorHandler
+import com.example.onehandcommander.utils.UiHelper
 import com.example.onehandcommander.utils.Vibration
 import android.accessibilityservice.AccessibilityService
 import android.app.KeyguardManager
@@ -186,26 +190,26 @@ class MainService : AccessibilityService() {
         overlayManager.appMenu.onSystemActionRequested = { actionType ->
             stateManager.processIntent(ServiceIntent.DismissMenu)
             when (actionType) {
-                com.example.onehandcommander.ui.overlays.model.SystemActionType.HOME -> {
+                SystemActionType.HOME -> {
                     performGlobalAction(GLOBAL_ACTION_HOME)
                 }
-                com.example.onehandcommander.ui.overlays.model.SystemActionType.BACK -> {
+                SystemActionType.BACK -> {
                     performGlobalAction(GLOBAL_ACTION_BACK)
                 }
-                com.example.onehandcommander.ui.overlays.model.SystemActionType.RECENTS -> {
+                SystemActionType.RECENTS -> {
                     performGlobalAction(GLOBAL_ACTION_RECENTS)
                 }
-                com.example.onehandcommander.ui.overlays.model.SystemActionType.NOTIFICATIONS -> {
+                SystemActionType.NOTIFICATIONS -> {
                     performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
                 }
-                com.example.onehandcommander.ui.overlays.model.SystemActionType.SCREENSHOT -> {
+                SystemActionType.SCREENSHOT -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                         performGlobalAction(GLOBAL_ACTION_TAKE_SCREENSHOT)
                     } else {
                         UiHelper.showToast(this, "お使いのOSバージョンでは非対応です")
                     }
                 }
-                com.example.onehandcommander.ui.overlays.model.SystemActionType.POWER_DIALOG -> {
+                SystemActionType.POWER_DIALOG -> {
                     performGlobalAction(GLOBAL_ACTION_POWER_DIALOG)
                 }
             }
@@ -214,10 +218,10 @@ class MainService : AccessibilityService() {
         // AppMenu からの便利機能リクエスト (タッチパッド起動等)
         overlayManager.appMenu.onFeatureActionRequested = { featureType ->
             when (featureType) {
-                com.example.onehandcommander.ui.overlays.model.AppFeatureType.LAUNCH_TOUCHPAD -> {
+                AppFeatureType.LAUNCH_TOUCHPAD -> {
                     stateManager.processIntent(ServiceIntent.SwipeFloatingButton)
                 }
-                com.example.onehandcommander.ui.overlays.model.AppFeatureType.OPEN_SETTINGS -> {
+                AppFeatureType.OPEN_SETTINGS -> {
                     stateManager.processIntent(ServiceIntent.DismissMenu)
                 }
             }
@@ -227,7 +231,7 @@ class MainService : AccessibilityService() {
     private fun startForegroundSafely() {
         try {
             createNotificationChannel()
-            val settingsIntent = Intent(this, com.example.onehandcommander.settings.SettingsActivity::class.java)
+            val settingsIntent = Intent(this, SettingsActivity::class.java)
             val pendingIntent = PendingIntent.getActivity(
                 this, 0, settingsIntent,
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT

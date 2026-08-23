@@ -310,13 +310,24 @@
     },
     {
       "source": "MainService",
+      "target": "SettingsActivity",
+      "_src": "MainService",
+      "_tgt": "SettingsActivity",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
+      "source_location": "L5",
+      "weight": 1
+    },
+    {
+      "source": "MainService",
       "target": "AppMenu",
       "_src": "MainService",
       "_tgt": "AppMenu",
       "relation": "imports_from",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L5",
+      "source_location": "L6",
       "weight": 1
     },
     {
@@ -327,7 +338,18 @@
       "relation": "imports_from",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L6",
+      "source_location": "L9",
+      "weight": 1
+    },
+    {
+      "source": "MainService",
+      "target": "UiHelper",
+      "_src": "MainService",
+      "_tgt": "UiHelper",
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
+      "source_location": "L10",
       "weight": 1
     },
     {
@@ -338,7 +360,7 @@
       "relation": "imports_from",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L7",
+      "source_location": "L11",
       "weight": 1
     },
     {
@@ -349,7 +371,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L30",
+      "source_location": "L34",
       "weight": 1
     },
     {
@@ -360,7 +382,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L30",
+      "source_location": "L34",
       "weight": 1
     },
     {
@@ -371,7 +393,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L43",
+      "source_location": "L47",
       "weight": 1
     },
     {
@@ -382,7 +404,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L44",
+      "source_location": "L48",
       "weight": 1
     },
     {
@@ -393,7 +415,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L72",
+      "source_location": "L76",
       "weight": 1
     },
     {
@@ -404,7 +426,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L93",
+      "source_location": "L97",
       "weight": 1
     },
     {
@@ -415,7 +437,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L94",
+      "source_location": "L98",
       "weight": 1
     },
     {
@@ -426,7 +448,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L97",
+      "source_location": "L101",
       "weight": 1
     },
     {
@@ -437,7 +459,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L205",
+      "source_location": "L209",
       "weight": 1
     },
     {
@@ -448,7 +470,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L230",
+      "source_location": "L234",
       "weight": 1
     },
     {
@@ -459,7 +481,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "app/src/main/java/com/example/onehandcommander/core/MainService.kt",
-      "source_location": "L252",
+      "source_location": "L256",
       "weight": 1
     },
     {
