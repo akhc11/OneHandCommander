@@ -33,15 +33,21 @@ import com.example.onehandcommander.R
 import com.example.onehandcommander.settings.SavedData
 import com.example.onehandcommander.settings.SettingsActivity
 import com.example.onehandcommander.ui.drawables.DirectIconDrawable
+import com.example.onehandcommander.ui.drawables.GestureTenkeyHudDrawable
 import com.example.onehandcommander.ui.overlays.model.AppFeatureType
 import com.example.onehandcommander.ui.overlays.model.DirectIconType
 import com.example.onehandcommander.ui.overlays.model.MenuGridItem
 import com.example.onehandcommander.ui.overlays.model.MenuSlotAction
 import com.example.onehandcommander.ui.overlays.model.SystemActionType
 import com.example.onehandcommander.utils.AppIconCache
+import com.example.onehandcommander.utils.Constants
 import com.example.onehandcommander.utils.ErrorHandler
 import com.example.onehandcommander.utils.UiHelper
 import com.example.onehandcommander.utils.Vibration
+import android.os.Handler
+import android.os.Looper
+import kotlin.math.atan2
+import kotlin.math.sqrt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -219,6 +225,42 @@ class AppMenu(
     private var initialTouchRawX = 0f
     private var initialTouchRawY = 0f
 
+    // 背景ジェスチャーテンキー関連
+    private val density by lazy { context.resources.displayMetrics.density }
+    private val flickThresholdPx by lazy { UiHelper.dpToPx(context, Constants.SWIPE_THRESHOLD_DP).toFloat() }
+    private val hudDrawable by lazy { GestureTenkeyHudDrawable(density) }
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var gestureStartX = 0f
+    private var gestureStartY = 0f
+    private var gestureCurrentX = 0f
+    private var gestureCurrentY = 0f
+    private var isZeroCommitted = false
+    private var lastVibratedDigit: String? = null
+    private val enteredBuffer = StringBuilder()
+
+    private val longPressZeroRunnable = Runnable {
+        if (!isZeroCommitted) {
+            isZeroCommitted = true
+            Vibration.vibrateZeroLongPress(context)
+            hudDrawable.isLongPressZero = true
+            hudDrawable.activeDigit = "0"
+            hudDrawable.enteredBufferText = enteredBuffer.toString() + "0"
+            menuCardView?.invalidate()
+            focusSearch()
+        }
+    }
+
+    private val singleDigitCommitRunnable = Runnable {
+        if (enteredBuffer.isNotEmpty()) {
+            val finalInput = enteredBuffer.toString()
+            enteredBuffer.clear()
+            hudDrawable.isActive = false
+            hudDrawable.enteredBufferText = ""
+            overlayView?.invalidate()
+            launchByNumber(finalInput)
+        }
+    }
+
     override fun createLayoutParams(): WindowManager.LayoutParams {
         return WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -243,9 +285,15 @@ class AppMenu(
         val dragHandle = view.findViewById<ImageView>(R.id.iv_drag_handle)
         menuCardView = menuCard
 
-        // 背景タップで閉じる
-        dimBackground?.setOnClickListener { hide() }
-        menuCard?.setOnClickListener { /* イベント消費 */ }
+        // 背景にHUD Drawableを追加
+        if (dimBackground is ViewGroup) {
+            dimBackground.overlay.add(hudDrawable)
+        }
+
+        // 背景タッチ＆ジェスチャー処理
+        dimBackground?.setOnTouchListener { v, event ->
+            handleBackgroundTouch(v, event, menuCard)
+        }
 
         // 保存された座標の復元 (未設定 -1 の場合はレイアウト完了後に画面中央へ配置)
         applySavedPosition(view, menuCard)
@@ -395,6 +443,13 @@ class AppMenu(
 
     override fun hide() {
         try {
+            mainHandler.removeCallbacks(longPressZeroRunnable)
+            mainHandler.removeCallbacks(singleDigitCommitRunnable)
+            enteredBuffer.clear()
+            hudDrawable.isActive = false
+            hudDrawable.enteredBufferText = ""
+            previewByNumber("")
+
             searchInput?.let { edit ->
                 val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                 imm?.hideSoftInputFromWindow(edit.windowToken, 0)
@@ -822,6 +877,175 @@ class AppMenu(
                 else -> false
             }
         }
+    }
+
+    /**
+     * 背景全画面でのタッチ＆ブラインドジェスチャーテンキー処理
+     */
+    private fun handleBackgroundTouch(v: View, event: MotionEvent, menuCard: View): Boolean {
+        hudDrawable.setBounds(0, 0, v.width, v.height)
+
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                // カード内部のタッチなら子Viewに任せる
+                if (isTouchInsideView(event.rawX, event.rawY, menuCard)) {
+                    return false
+                }
+
+                gestureStartX = event.rawX
+                gestureStartY = event.rawY
+                gestureCurrentX = event.rawX
+                gestureCurrentY = event.rawY
+
+                isZeroCommitted = false
+                lastVibratedDigit = null
+
+                // 次のストローク開始により、1桁確定タイマーをキャンセル
+                mainHandler.removeCallbacks(singleDigitCommitRunnable)
+
+                // HUD更新
+                hudDrawable.isActive = true
+                hudDrawable.originX = gestureStartX
+                hudDrawable.originY = gestureStartY
+                hudDrawable.currentX = gestureCurrentX
+                hudDrawable.currentY = gestureCurrentY
+                hudDrawable.activeDigit = null
+                hudDrawable.isLongPressZero = false
+                hudDrawable.enteredBufferText = enteredBuffer.toString()
+
+                // 長押し「0」タイマー開始 (300ms)
+                mainHandler.removeCallbacks(longPressZeroRunnable)
+                mainHandler.postDelayed(longPressZeroRunnable, Constants.TENKEY_LONG_PRESS_MS)
+
+                v.invalidate()
+                return true
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (isZeroCommitted) return true
+
+                gestureCurrentX = event.rawX
+                gestureCurrentY = event.rawY
+                hudDrawable.currentX = gestureCurrentX
+                hudDrawable.currentY = gestureCurrentY
+
+                val dx = gestureCurrentX - gestureStartX
+                val dy = gestureCurrentY - gestureStartY
+                val dist = sqrt(dx * dx + dy * dy)
+
+                if (dist > flickThresholdPx * 0.35f) {
+                    mainHandler.removeCallbacks(longPressZeroRunnable)
+                }
+
+                if (dist >= flickThresholdPx) {
+                    val digit = getDigitFromAngle(dx, dy)
+                    hudDrawable.activeDigit = digit
+
+                    if (lastVibratedDigit != digit) {
+                        lastVibratedDigit = digit
+                        val isDiagonal = (digit == "1" || digit == "3" || digit == "7" || digit == "9")
+                        if (isDiagonal) {
+                            Vibration.vibrateDiagonalFlick(context)
+                        } else {
+                            Vibration.vibrateOrthogonalFlick(context)
+                        }
+                    }
+
+                    previewByNumber(enteredBuffer.toString() + digit)
+                } else {
+                    hudDrawable.activeDigit = null
+                    lastVibratedDigit = null
+                    previewByNumber(enteredBuffer.toString())
+                }
+
+                v.invalidate()
+                return true
+            }
+
+            MotionEvent.ACTION_UP -> {
+                mainHandler.removeCallbacks(longPressZeroRunnable)
+                hudDrawable.isActive = false
+                v.invalidate()
+
+                if (isZeroCommitted) {
+                    isZeroCommitted = false
+                    return true
+                }
+
+                val dx = event.rawX - gestureStartX
+                val dy = event.rawY - gestureStartY
+                val dist = sqrt(dx * dx + dy * dy)
+
+                if (dist >= flickThresholdPx) {
+                    val digit = getDigitFromAngle(dx, dy)
+                    commitGestureDigit(digit)
+                } else {
+                    // スワイプなしの静止タップ -> メニューを閉じる (入力バッファがなければ)
+                    if (enteredBuffer.isEmpty()) {
+                        hide()
+                    }
+                }
+                return true
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                mainHandler.removeCallbacks(longPressZeroRunnable)
+                hudDrawable.isActive = false
+                v.invalidate()
+                return true
+            }
+
+            else -> return false
+        }
+    }
+
+    private fun commitGestureDigit(digit: String) {
+        if (enteredBuffer.isEmpty()) {
+            // 1桁目決定
+            enteredBuffer.append(digit)
+            hudDrawable.enteredBufferText = digit
+            previewByNumber(digit)
+
+            // 650ms待機タイマー開始（2回目のスワイプを行うための十分な猶予時間を確保）
+            mainHandler.removeCallbacks(singleDigitCommitRunnable)
+            mainHandler.postDelayed(singleDigitCommitRunnable, Constants.TENKEY_SINGLE_DIGIT_TIMEOUT_MS)
+        } else {
+            // 2桁目決定 -> 即確定
+            enteredBuffer.append(digit)
+            val finalInput = enteredBuffer.toString()
+            enteredBuffer.clear()
+            hudDrawable.enteredBufferText = ""
+            overlayView?.invalidate()
+            launchByNumber(finalInput)
+        }
+    }
+
+    private fun getDigitFromAngle(dx: Float, dy: Float): String {
+        val rad = atan2(dy.toDouble(), dx.toDouble())
+        var deg = Math.toDegrees(rad)
+        if (deg < 0) deg += 360.0
+
+        return when {
+            deg >= 337.5 || deg < 22.5 -> "6" // 右 (0度)
+            deg >= 22.5 && deg < 67.5 -> "3"   // 右下 (45度)
+            deg >= 67.5 && deg < 112.5 -> "2"  // 下 (90度)
+            deg >= 112.5 && deg < 157.5 -> "1" // 左下 (135度)
+            deg >= 157.5 && deg < 202.5 -> "4" // 左 (180度)
+            deg >= 202.5 && deg < 247.5 -> "7" // 左上 (225度)
+            deg >= 247.5 && deg < 292.5 -> "8" // 上 (270度)
+            deg >= 292.5 && deg < 337.5 -> "9" // 右上 (315度)
+            else -> "5"
+        }
+    }
+
+    private fun isTouchInsideView(rawX: Float, rawY: Float, targetView: View): Boolean {
+        val location = IntArray(2)
+        targetView.getLocationOnScreen(location)
+        val left = location[0]
+        val top = location[1]
+        val right = left + targetView.width
+        val bottom = top + targetView.height
+        return rawX >= left && rawX <= right && rawY >= top && rawY <= bottom
     }
 
     override fun cleanup() {

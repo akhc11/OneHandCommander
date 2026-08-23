@@ -67,15 +67,15 @@ class OverlayManager(
             is ServiceState.MenuNormal -> {
                 btnManager.updateVisibility(true)
                 padManager.hide()
+                tenkeyManager.hide()
                 appMenu.show()
-                tenkeyManager.show()
             }
             is ServiceState.MenuSearch -> {
                 btnManager.updateVisibility(true)
                 padManager.hide()
+                tenkeyManager.hide()
                 appMenu.show()
                 appMenu.focusSearch()
-                tenkeyManager.show()
             }
             is ServiceState.TouchpadActive -> {
                 btnManager.updateVisibility(true)
