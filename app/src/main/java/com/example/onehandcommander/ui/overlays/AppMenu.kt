@@ -175,11 +175,14 @@ class AppMenu(
             val externalUri = MediaStore.Files.getContentUri("external")
             val sortOrder = "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC"
 
-            val (selection, selectionArgs) = if (!searchQuery.isNullOrBlank()) {
-                val q = "%${searchQuery.trim()}%"
-                ("${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ?", arrayOf(q))
+            val selection: String?
+            val selectionArgs: Array<String>?
+            if (!searchQuery.isNullOrBlank()) {
+                selection = "${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ?"
+                selectionArgs = arrayOf("%${searchQuery.trim()}%")
             } else {
-                (null, null)
+                selection = null
+                selectionArgs = null
             }
 
             try {
