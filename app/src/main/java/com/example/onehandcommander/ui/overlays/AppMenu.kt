@@ -344,7 +344,7 @@ class AppMenu(
     override fun show() {
         try {
             super.show()
-            view?.let { root ->
+            overlayView?.let { root ->
                 menuCardView?.let { card ->
                     applySavedPosition(root, card)
                 }
